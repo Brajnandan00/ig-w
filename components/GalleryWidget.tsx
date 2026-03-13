@@ -246,7 +246,7 @@ export default function GalleryWidget({ layout, tier, count }: GalleryWidgetProp
                   rel="noopener noreferrer"
                   className="text-xs font-semibold text-blue-400 hover:text-blue-300"
                 >
-                  View on Instagram
+                  View Post
                 </a>
               </div>
               

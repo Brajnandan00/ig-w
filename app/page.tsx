@@ -1,17 +1,54 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Settings, LayoutGrid, Columns, GalleryHorizontalEnd, Crown, CheckCircle2, Copy, ExternalLink, Instagram } from 'lucide-react';
+import { Settings, LayoutGrid, Columns, GalleryHorizontalEnd, Crown, CheckCircle2, Copy, ExternalLink, Aperture } from 'lucide-react';
 import GalleryWidget from '@/components/GalleryWidget';
 
 export default function Dashboard() {
   const [layout, setLayout] = useState<'grid' | 'masonry' | 'carousel'>('grid');
-  const [tier, setTier] = useState<'free' | 'premium'>('premium');
+  const [tier, setTier] = useState<'free' | 'premium'>('free');
+  const [isPremium, setIsPremium] = useState(false);
+  const [loadingBilling, setLoadingBilling] = useState(true);
   const [count, setCount] = useState<number>(12);
   const [copied, setCopied] = useState(false);
+  const [shop, setShop] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    // App Bridge automatically appends shop to the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const shopParam = urlParams.get('shop');
+    setShop(shopParam);
+
+    if (shopParam) {
+      fetch(`/api/billing/status?shop=${shopParam}`)
+        .then(res => res.json())
+        .then(data => {
+          setIsPremium(data.hasActivePayment);
+          setTier(data.hasActivePayment ? 'premium' : 'free');
+          setLoadingBilling(false);
+        })
+        .catch(() => setLoadingBilling(false));
+    } else {
+      setLoadingBilling(false);
+    }
+  }, []);
+
+  const handleConnect = () => {
+    if (shop) {
+      window.open(`/api/instagram/auth?shop=${shop}`, '_top');
+    } else {
+      alert('Shop parameter missing. Please open this app within Shopify Admin.');
+    }
+  };
+
+  const handleUpgrade = () => {
+    if (shop) {
+      window.open(`/api/billing/subscribe?shop=${shop}`, '_top');
+    }
+  };
 
   const handleCopyCode = () => {
-    const code = `<div class="instagram-gallery" data-layout="${layout}" data-count="${count}"></div>`;
+    const code = `<div class="social-grid-gallery" data-layout="${layout}" data-count="${count}"></div>`;
     navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -23,10 +60,10 @@ export default function Dashboard() {
       <header className="bg-white border-b border-zinc-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-tr from-yellow-400 via-red-500 to-fuchsia-600 p-2 rounded-xl text-white">
-              <Instagram size={24} />
+            <div className="bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-2 rounded-xl text-white">
+              <Aperture size={24} />
             </div>
-            <h1 className="text-xl font-bold tracking-tight">InstaGallery Pro</h1>
+            <h1 className="text-xl font-bold tracking-tight">Social Grid Pro</h1>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-zinc-500">Shopify App Dashboard</span>
@@ -64,7 +101,13 @@ export default function Dashboard() {
                   Free Plan
                 </button>
                 <button
-                  onClick={() => setTier('premium')}
+                  onClick={() => {
+                    if (!isPremium) {
+                      handleUpgrade();
+                    } else {
+                      setTier('premium');
+                    }
+                  }}
                   className={`py-2 px-3 rounded-lg border text-sm font-medium transition-all flex items-center justify-center gap-2 ${
                     tier === 'premium' 
                       ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-transparent shadow-md' 
@@ -72,7 +115,7 @@ export default function Dashboard() {
                   }`}
                 >
                   <Crown size={16} />
-                  Premium
+                  {loadingBilling ? 'Loading...' : isPremium ? 'Premium' : 'Upgrade ($5/mo)'}
                 </button>
               </div>
             </div>
@@ -169,7 +212,7 @@ export default function Dashboard() {
               <label className="block text-sm font-medium text-zinc-700 mb-3">Shopify Integration</label>
               <div className="bg-zinc-900 rounded-xl p-4 relative group">
                 <code className="text-xs text-green-400 font-mono break-all">
-                  &lt;div class=&quot;instagram-gallery&quot;<br/>
+                  &lt;div class=&quot;social-grid-gallery&quot;<br/>
                   &nbsp;&nbsp;data-layout=&quot;{layout}&quot;<br/>
                   &nbsp;&nbsp;data-count=&quot;{count}&quot;&gt;<br/>
                   &lt;/div&gt;
@@ -209,7 +252,7 @@ export default function Dashboard() {
             <div className="p-8 flex-1 overflow-y-auto bg-white">
               <div className="max-w-5xl mx-auto">
                 <div className="text-center mb-12">
-                  <h2 className="text-3xl font-serif text-zinc-900 mb-4">Follow Us On Instagram</h2>
+                  <h2 className="text-3xl font-serif text-zinc-900 mb-4">Follow Our Social Feed</h2>
                   <p className="text-zinc-500 max-w-2xl mx-auto">
                     Tag us in your photos to be featured on our gallery. Discover how others are styling our products.
                   </p>
