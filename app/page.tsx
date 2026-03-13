@@ -1,0 +1,228 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Settings, LayoutGrid, Columns, GalleryHorizontalEnd, Crown, CheckCircle2, Copy, ExternalLink, Instagram } from 'lucide-react';
+import GalleryWidget from '@/components/GalleryWidget';
+
+export default function Dashboard() {
+  const [layout, setLayout] = useState<'grid' | 'masonry' | 'carousel'>('grid');
+  const [tier, setTier] = useState<'free' | 'premium'>('premium');
+  const [count, setCount] = useState<number>(12);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyCode = () => {
+    const code = `<div class="instagram-gallery" data-layout="${layout}" data-count="${count}"></div>`;
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 font-sans">
+      {/* Top Navigation */}
+      <header className="bg-white border-b border-zinc-200 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-tr from-yellow-400 via-red-500 to-fuchsia-600 p-2 rounded-xl text-white">
+              <Instagram size={24} />
+            </div>
+            <h1 className="text-xl font-bold tracking-tight">InstaGallery Pro</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-zinc-500">Shopify App Dashboard</span>
+            <div className="h-8 w-8 bg-zinc-200 rounded-full flex items-center justify-center font-bold text-zinc-600">
+              M
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8">
+        {/* Sidebar Configuration */}
+        <aside className="w-full lg:w-80 flex-shrink-0 space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Settings size={20} className="text-zinc-500" />
+              <h2 className="text-lg font-semibold">Widget Settings</h2>
+            </div>
+
+            {/* Tier Selection */}
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-zinc-700 mb-3">Subscription Tier</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => {
+                    setTier('free');
+                    setLayout('grid'); // Free tier only supports grid
+                  }}
+                  className={`py-2 px-3 rounded-lg border text-sm font-medium transition-all ${
+                    tier === 'free' 
+                      ? 'bg-zinc-900 text-white border-zinc-900 shadow-md' 
+                      : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'
+                  }`}
+                >
+                  Free Plan
+                </button>
+                <button
+                  onClick={() => setTier('premium')}
+                  className={`py-2 px-3 rounded-lg border text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                    tier === 'premium' 
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-transparent shadow-md' 
+                      : 'bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300'
+                  }`}
+                >
+                  <Crown size={16} />
+                  Premium
+                </button>
+              </div>
+            </div>
+
+            {/* Layout Selection */}
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-zinc-700 mb-3">Gallery Layout</label>
+              <div className="space-y-3">
+                <button
+                  onClick={() => setLayout('grid')}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                    layout === 'grid' 
+                      ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700' 
+                      : 'border-zinc-200 hover:border-zinc-300 text-zinc-600'
+                  }`}
+                >
+                  <LayoutGrid size={20} />
+                  <div className="text-left">
+                    <div className="font-medium text-sm">Standard Grid</div>
+                    <div className="text-xs opacity-80">Uniform square images</div>
+                  </div>
+                  {layout === 'grid' && <CheckCircle2 size={18} className="ml-auto" />}
+                </button>
+
+                <button
+                  onClick={() => tier === 'premium' && setLayout('masonry')}
+                  disabled={tier === 'free'}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                    layout === 'masonry' 
+                      ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700' 
+                      : tier === 'free'
+                        ? 'border-zinc-100 bg-zinc-50 text-zinc-400 cursor-not-allowed'
+                        : 'border-zinc-200 hover:border-zinc-300 text-zinc-600'
+                  }`}
+                >
+                  <Columns size={20} />
+                  <div className="text-left">
+                    <div className="font-medium text-sm flex items-center gap-2">
+                      Masonry
+                      {tier === 'free' && <Crown size={12} className="text-amber-500" />}
+                    </div>
+                    <div className="text-xs opacity-80">Natural aspect ratios</div>
+                  </div>
+                  {layout === 'masonry' && <CheckCircle2 size={18} className="ml-auto" />}
+                </button>
+
+                <button
+                  onClick={() => tier === 'premium' && setLayout('carousel')}
+                  disabled={tier === 'free'}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                    layout === 'carousel' 
+                      ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700' 
+                      : tier === 'free'
+                        ? 'border-zinc-100 bg-zinc-50 text-zinc-400 cursor-not-allowed'
+                        : 'border-zinc-200 hover:border-zinc-300 text-zinc-600'
+                  }`}
+                >
+                  <GalleryHorizontalEnd size={20} />
+                  <div className="text-left">
+                    <div className="font-medium text-sm flex items-center gap-2">
+                      Carousel
+                      {tier === 'free' && <Crown size={12} className="text-amber-500" />}
+                    </div>
+                    <div className="text-xs opacity-80">Horizontal swipeable slider</div>
+                  </div>
+                  {layout === 'carousel' && <CheckCircle2 size={18} className="ml-auto" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Posts Count */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-sm font-medium text-zinc-700">Number of Posts</label>
+                <span className="text-sm font-bold text-indigo-600">{count}</span>
+              </div>
+              <input 
+                type="range" 
+                min="4" 
+                max="24" 
+                step="4"
+                value={count}
+                onChange={(e) => setCount(parseInt(e.target.value))}
+                className="w-full accent-indigo-600"
+              />
+              <div className="flex justify-between text-xs text-zinc-400 mt-2">
+                <span>4</span>
+                <span>24</span>
+              </div>
+            </div>
+
+            {/* Integration Code */}
+            <div className="pt-6 border-t border-zinc-200">
+              <label className="block text-sm font-medium text-zinc-700 mb-3">Shopify Integration</label>
+              <div className="bg-zinc-900 rounded-xl p-4 relative group">
+                <code className="text-xs text-green-400 font-mono break-all">
+                  &lt;div class=&quot;instagram-gallery&quot;<br/>
+                  &nbsp;&nbsp;data-layout=&quot;{layout}&quot;<br/>
+                  &nbsp;&nbsp;data-count=&quot;{count}&quot;&gt;<br/>
+                  &lt;/div&gt;
+                </code>
+                <button 
+                  onClick={handleCopyCode}
+                  className="absolute top-3 right-3 p-1.5 bg-white/10 hover:bg-white/20 rounded-md text-white transition-colors"
+                  title="Copy to clipboard"
+                >
+                  {copied ? <CheckCircle2 size={16} className="text-green-400" /> : <Copy size={16} />}
+                </button>
+              </div>
+              <p className="text-xs text-zinc-500 mt-3 flex items-center gap-1">
+                Paste this in your Liquid template <ExternalLink size={12} />
+              </p>
+            </div>
+          </div>
+        </aside>
+
+        {/* Live Preview Area */}
+        <div className="flex-1">
+          <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden flex flex-col h-full min-h-[800px]">
+            <div className="border-b border-zinc-200 p-4 bg-zinc-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                  <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                </div>
+                <span className="ml-4 text-xs font-medium text-zinc-500 uppercase tracking-wider">Storefront Preview</span>
+              </div>
+              <div className="text-xs font-mono bg-zinc-200 text-zinc-600 px-2 py-1 rounded">
+                {layout} layout • {tier} tier
+              </div>
+            </div>
+            
+            <div className="p-8 flex-1 overflow-y-auto bg-white">
+              <div className="max-w-5xl mx-auto">
+                <div className="text-center mb-12">
+                  <h2 className="text-3xl font-serif text-zinc-900 mb-4">Follow Us On Instagram</h2>
+                  <p className="text-zinc-500 max-w-2xl mx-auto">
+                    Tag us in your photos to be featured on our gallery. Discover how others are styling our products.
+                  </p>
+                </div>
+                
+                {/* The actual gallery widget component */}
+                <GalleryWidget layout={layout} tier={tier} count={count} />
+                
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

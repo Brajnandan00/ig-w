@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Session storage for Shopify app authentication
+model Session {
+  id     String  @id @db.Char(32)
+  shop   String @db.VarChar(100)
+  state  String @db.VarChar(100)
+  isOnline Boolean @default(false)
+  accessToken String @db.VarChar(500)
+  refreshToken String? @db.VarChar(500)
+  refreshTokenExpires DateTime?
+  scope String?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+}
+
+// Instagram account linked to Shopify store
+model InstagramAccount {
+  id String @id @default(cuid())
+  shopDomain String @db.VarChar(100)
+  igUserId String @db.VarChar(50)
+  igBusinessAccountId String @db.VarChar(50)
+  igUsername String @db.VarChar(100)
+  accessToken String @db.LongText
+  refreshToken String? @db.LongText
+  refreshTokenExpires DateTime?
+  profileUrl String? @db.VarChar(500)
+  profilePicture String? @db.VarChar(500)
+  followerCount Int @default(0)
+  lastSyncedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  media InstagramMedia[]
+  feedSettings FeedSettings?
+
+  @@unique([shopDomain, igUsername])
+  @@index([shopDomain])
+}
+
+// Instagram media (posts from linked account)
+model InstagramMedia {
+  id String @id @db.VarChar(100)
+  shopDomain String @db.VarChar(100)
+  accountId String @db.VarChar(50)
+  caption String? @db.LongText
+  mediaType String @db.VarChar(20) // IMAGE, VIDEO, CAROUSEL
+  mediaUrl String @db.LongText
+  permalink String @db.VarChar(500)
+  timestamp DateTime
+  engagementCount Int @default(0)
+  impressionCount Int @default(0)
+  blurHash String? @db.VarChar(255) // Blur-hash placeholder for faster loading
+  syncedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  account InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  hiddenPosts HiddenPost[]
+
+  @@unique([id, shopDomain])
+  @@index([shopDomain])
+  @@index([accountId])
+  @@index([timestamp])
+}
+
+// Hidden/excluded posts (Premium feature)
+model HiddenPost {
+  id String @id @default(cuid())
+  shopDomain String @db.VarChar(100)
+  mediaId String @db.VarChar(100)
+  reason String? @db.VarChar(255)
+  createdAt DateTime @default(now())
+  
+  media InstagramMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([mediaId, shopDomain])
+  @@index([shopDomain])
+}
+
+// Feed display settings per store
+model FeedSettings {
+  id String @id @default(cuid())
+  shopDomain String @db.VarChar(100)
+  accountId String @db.VarChar(50) @unique
+  displayLayout String @default("grid") @db.VarChar(50) // grid, masonry, carousel
+  postsPerPage Int @default(12)
+  autoRefreshInterval Int @default(3600) // seconds
+  enableLightbox Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  account InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([shopDomain])
+  @@index([shopDomain])
+}
+
+// Theme extension settings (Premium layouts, colors, etc.)
+model ThemeExtensionSettings {
+  id String @id @default(cuid())
+  shopDomain String @db.VarChar(100) @unique
+  themeJson String @db.LongText // JSON config for theme
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shopDomain])
+}
