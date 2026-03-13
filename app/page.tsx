@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [count, setCount] = useState<number>(12);
   const [copied, setCopied] = useState(false);
   const [shop, setShop] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(true);
 
   React.useEffect(() => {
     // App Bridge automatically appends shop to the URL
@@ -244,8 +245,24 @@ export default function Dashboard() {
                 </div>
                 <span className="ml-4 text-xs font-medium text-zinc-500 uppercase tracking-wider">Storefront Preview</span>
               </div>
-              <div className="text-xs font-mono bg-zinc-200 text-zinc-600 px-2 py-1 rounded">
-                {layout} layout • {tier} tier
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg p-1">
+                  <button
+                    onClick={() => setIsEditMode(false)}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${!isEditMode ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  >
+                    Preview Mode
+                  </button>
+                  <button
+                    onClick={() => setIsEditMode(true)}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${isEditMode ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'}`}
+                  >
+                    Edit Mode
+                  </button>
+                </div>
+                <div className="text-xs font-mono bg-zinc-200 text-zinc-600 px-2 py-1 rounded">
+                  {layout} layout • {tier} tier
+                </div>
               </div>
             </div>
             
@@ -259,7 +276,7 @@ export default function Dashboard() {
                 </div>
                 
                 {/* The actual gallery widget component */}
-                <GalleryWidget layout={layout} tier={tier} count={count} />
+                <GalleryWidget layout={layout} tier={tier} count={count} shop={shop} isAdmin={isEditMode} />
                 
               </div>
             </div>

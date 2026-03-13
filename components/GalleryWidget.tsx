@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
-import { Play, Layers, Heart, MessageCircle, X, Share2, Download } from 'lucide-react';
+import { Play, Layers, Heart, MessageCircle, X, Share2, Download, Eye, EyeOff } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 import 'swiper/css';
@@ -28,9 +28,11 @@ interface GalleryWidgetProps {
   layout: 'grid' | 'masonry' | 'carousel';
   tier: 'free' | 'premium';
   count: number;
+  shop?: string | null;
+  isAdmin?: boolean;
 }
 
-export default function GalleryWidget({ layout, tier, count }: GalleryWidgetProps) {
+export default function GalleryWidget({ layout, tier, count, shop, isAdmin }: GalleryWidgetProps) {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lightboxItem, setLightboxItem] = useState<MediaItem | null>(null);
@@ -39,7 +41,10 @@ export default function GalleryWidget({ layout, tier, count }: GalleryWidgetProp
     const fetchMedia = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/media/feed?tier=${tier}&count=${count}`);
+        const url = shop 
+          ? `/api/media/feed?tier=${tier}&count=${count}&shop=${shop}`
+          : `/api/media/feed?tier=${tier}&count=${count}`;
+        const res = await fetch(url);
         const data = await res.json();
         setMedia(data.media);
       } catch (error) {
@@ -50,7 +55,26 @@ export default function GalleryWidget({ layout, tier, count }: GalleryWidgetProp
     };
 
     fetchMedia();
-  }, [tier, count]);
+  }, [tier, count, shop]);
+
+  const toggleVisibility = async (e: React.MouseEvent, item: MediaItem) => {
+    e.stopPropagation();
+    if (!isAdmin || !shop) return;
+
+    try {
+      const res = await fetch('/api/media/toggle-visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop, mediaId: item.id, isHidden: !item.isHidden }),
+      });
+      
+      if (res.ok) {
+        setMedia(prev => prev.map(m => m.id === item.id ? { ...m, isHidden: !m.isHidden } : m));
+      }
+    } catch (error) {
+      console.error('Failed to toggle visibility:', error);
+    }
+  };
 
   // Handle keyboard navigation for lightbox
   useEffect(() => {
@@ -71,23 +95,46 @@ export default function GalleryWidget({ layout, tier, count }: GalleryWidgetProp
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [lightboxItem, media]);
 
-  const renderMediaItem = (item: MediaItem) => (
+  const renderMediaItem = (item: MediaItem) => {
+    if (!isAdmin && item.isHidden) return null;
+    
+    return (
     <div 
       key={item.id} 
-      className="group relative overflow-hidden rounded-xl bg-gray-100 cursor-pointer aspect-square w-full"
+      className={`group relative overflow-hidden rounded-xl bg-gray-100 cursor-pointer aspect-square w-full ${item.isHidden ? 'opacity-50 grayscale' : ''}`}
       onClick={() => setLightboxItem(item)}
     >
-      <Image
-        src={item.mediaUrl}
-        alt={item.caption}
-        fill
-        className="object-cover transition-transform duration-500 group-hover:scale-110"
-        sizes="(max-width: 768px) 50vw, 33vw"
-        referrerPolicy="no-referrer"
-      />
+      {item.mediaType === 'VIDEO' ? (
+        <video
+          src={item.mediaUrl}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
+        />
+      ) : (
+        <Image
+          src={item.mediaUrl}
+          alt={item.caption}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-110"
+          sizes="(max-width: 768px) 50vw, 33vw"
+          referrerPolicy="no-referrer"
+        />
+      )}
       
       {/* Badges */}
-      <div className="absolute top-3 right-3 flex gap-2">
+      <div className="absolute top-3 right-3 flex gap-2 z-10">
+        {isAdmin && (
+          <button 
+            onClick={(e) => toggleVisibility(e, item)}
+            className="bg-black/50 hover:bg-black/80 backdrop-blur-md p-1.5 rounded-full text-white transition-colors"
+            title={item.isHidden ? "Show Post" : "Hide Post"}
+          >
+            {item.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        )}
         {item.mediaType === 'VIDEO' && (
           <div className="bg-black/50 backdrop-blur-md p-1.5 rounded-full text-white">
             <Play size={16} fill="currentColor" />
@@ -115,25 +162,49 @@ export default function GalleryWidget({ layout, tier, count }: GalleryWidgetProp
         </p>
       </div>
     </div>
-  );
+    );
+  };
 
   // Masonry requires different aspect ratios, so we adjust the container
-  const renderMasonryItem = (item: MediaItem) => (
+  const renderMasonryItem = (item: MediaItem) => {
+    if (!isAdmin && item.isHidden) return null;
+    
+    return (
     <div 
       key={item.id} 
-      className="group relative overflow-hidden rounded-xl bg-gray-100 cursor-pointer mb-4 break-inside-avoid"
+      className={`group relative overflow-hidden rounded-xl bg-gray-100 cursor-pointer mb-4 break-inside-avoid ${item.isHidden ? 'opacity-50 grayscale' : ''}`}
       onClick={() => setLightboxItem(item)}
     >
       {/* For masonry, we use a trick to maintain natural aspect ratio or just let Image fill a relative container with padding-bottom */}
-      <img
-        src={item.mediaUrl}
-        alt={item.caption}
-        className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
-        loading="lazy"
-      />
+      {item.mediaType === 'VIDEO' ? (
+        <video
+          src={item.mediaUrl}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+      ) : (
+        <img
+          src={item.mediaUrl}
+          alt={item.caption}
+          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
+          loading="lazy"
+        />
+      )}
       
       {/* Badges */}
-      <div className="absolute top-3 right-3 flex gap-2">
+      <div className="absolute top-3 right-3 flex gap-2 z-10">
+        {isAdmin && (
+          <button 
+            onClick={(e) => toggleVisibility(e, item)}
+            className="bg-black/50 hover:bg-black/80 backdrop-blur-md p-1.5 rounded-full text-white transition-colors"
+            title={item.isHidden ? "Show Post" : "Hide Post"}
+          >
+            {item.isHidden ? <EyeOff size={16} /> : <Eye size={16} />}
+          </button>
+        )}
         {item.mediaType === 'VIDEO' && (
           <div className="bg-black/50 backdrop-blur-md p-1.5 rounded-full text-white">
             <Play size={16} fill="currentColor" />
@@ -158,7 +229,8 @@ export default function GalleryWidget({ layout, tier, count }: GalleryWidgetProp
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -219,11 +291,22 @@ export default function GalleryWidget({ layout, tier, count }: GalleryWidgetProp
           <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col md:flex-row bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl">
             {/* Image Area */}
             <div className="relative w-full md:w-2/3 h-[50vh] md:h-[80vh] bg-black flex items-center justify-center">
-              <img 
-                src={lightboxItem.mediaUrl} 
-                alt={lightboxItem.caption}
-                className="max-w-full max-h-full object-contain"
-              />
+              {lightboxItem.mediaType === 'VIDEO' ? (
+                <video 
+                  src={lightboxItem.mediaUrl} 
+                  autoPlay
+                  controls
+                  loop
+                  playsInline
+                  className="max-w-full max-h-full object-contain"
+                />
+              ) : (
+                <img 
+                  src={lightboxItem.mediaUrl} 
+                  alt={lightboxItem.caption}
+                  className="max-w-full max-h-full object-contain"
+                />
+              )}
             </div>
             
             {/* Details Area */}
