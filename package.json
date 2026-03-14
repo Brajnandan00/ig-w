@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && cp .env .next/standalone/ || true",
+    "build": "next build && node copy-static.js && cp .env .next/standalone/ || true",
     "start": "HOSTNAME=0.0.0.0 node .next/standalone/server.js",
     "postinstall": "prisma generate",
     "lint": "eslint .",
