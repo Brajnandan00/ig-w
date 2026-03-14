@@ -1,9 +1,9 @@
 import type {Metadata} from 'next';
-import './globals.css'; // Global styles
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'My Google AI Studio App',
-  description: 'My Google AI Studio App',
+  title: 'Social Grid Pro',
+  description: 'Manage your Instagram gallery for Shopify',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
@@ -14,24 +14,17 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
         <script dangerouslySetInnerHTML={{
           __html: `
-            document.addEventListener('DOMContentLoaded', () => {
-              const app = window['app-bridge'];
-              if (app) {
-                const createApp = app.default;
-                const appInstance = createApp({
+            window.shopify = {
+              idToken: async () => {
+                const app = window['app-bridge'];
+                if (!app) throw new Error('App Bridge not initialized');
+                const appInstance = app.default.create({
                   apiKey: "${process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || ""}",
                   host: new URLSearchParams(window.location.search).get("host"),
                 });
-                
-                // Expose idToken to window.shopify
-                window.shopify = {
-                  idToken: async () => {
-                    const sessionToken = await appInstance.sessionToken();
-                    return sessionToken;
-                  }
-                };
+                return await appInstance.sessionToken();
               }
-            });
+            };
           `
         }} />
       </head>
