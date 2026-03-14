@@ -10,24 +10,10 @@ export default function Dashboard() {
   // Robust authenticated fetch
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     console.log('authenticatedFetch called for:', url);
-    let token = '';
-    try {
-      if (window.shopify && window.shopify.idToken) {
-        console.log('Attempting to get Shopify ID token...');
-        token = await window.shopify.idToken();
-        console.log('Shopify ID token obtained.');
-      } else {
-        console.warn('Shopify App Bridge not available or idToken not found.');
-      }
-    } catch (e) {
-      console.warn('Could not get Shopify ID token, proceeding without it:', e);
-    }
-
+    
+    // Temporarily skipping token retrieval to debug
     const headers = new Headers(options.headers || {});
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-
+    
     console.log('Sending fetch request to:', url);
     const res = await fetch(url, { ...options, headers });
     console.log('Fetch response status:', res.status);
