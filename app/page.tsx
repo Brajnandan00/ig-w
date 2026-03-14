@@ -13,6 +13,7 @@ declare global {
 }
 
 export default function Dashboard() {
+  console.log('Dashboard component rendering');
   const [layout, setLayout] = useState<'grid' | 'masonry' | 'carousel'>('grid');
   const [tier, setTier] = useState<'free' | 'premium'>('free');
   const [isPremium, setIsPremium] = useState(false);
