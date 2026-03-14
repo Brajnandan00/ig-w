@@ -34,6 +34,8 @@ export default function Dashboard() {
   const [igUsername, setIgUsername] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [tier, setTier] = useState<'free' | 'premium'>('free');
+  const [isPremium, setIsPremium] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -44,6 +46,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (shop) {
+      // Fetch Instagram status
       authenticatedFetch(`/api/instagram/status?shop=${shop}`)
         .then(res => res.json())
         .then(data => {
@@ -54,6 +57,15 @@ export default function Dashboard() {
           }
         })
         .catch(err => console.error('Instagram status fetch failed:', err));
+
+      // Fetch Billing status
+      authenticatedFetch(`/api/billing/status?shop=${shop}`)
+        .then(res => res.json())
+        .then(data => {
+          setIsPremium(data.hasActivePayment);
+          setTier(data.hasActivePayment ? 'premium' : 'free');
+        })
+        .catch(err => console.error('Billing status fetch failed:', err));
     }
   }, [shop]);
 
@@ -125,7 +137,34 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto p-8">
         <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 p-8">
           <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
-          <p className="text-zinc-600">Welcome back, {shop}. The app is now running on a clean foundation.</p>
+          <p className="text-zinc-600 mb-6">Welcome back, {shop}.</p>
+
+          <div className="space-y-6">
+            {/* Instagram Connection */}
+            <div className="p-6 border border-zinc-200 rounded-xl">
+              <h3 className="text-lg font-semibold mb-4">Instagram Connection</h3>
+              {igConnected ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="font-medium">@{igUsername}</div>
+                    <div className="text-xs text-zinc-500">Connected</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={handleSync} className="px-3 py-1 bg-zinc-100 rounded-md text-sm">Sync</button>
+                    <button onClick={handleDisconnect} className="px-3 py-1 bg-red-100 text-red-600 rounded-md text-sm">Disconnect</button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={handleConnect} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Connect Instagram</button>
+              )}
+            </div>
+            
+            {/* Subscription */}
+            <div className="p-6 border border-zinc-200 rounded-xl">
+              <h3 className="text-lg font-semibold mb-4">Subscription</h3>
+              <p>Current Tier: <span className="font-bold">{tier}</span></p>
+            </div>
+          </div>
         </div>
       </main>
     </div>
