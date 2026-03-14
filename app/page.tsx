@@ -37,7 +37,13 @@ export default function Dashboard() {
     // This is a temporary measure to bypass the hanging idToken() call.
     
     console.log(`Fetching ${url}...`);
-    return fetch(url, { ...options, headers });
+    const res = await fetch(url, { ...options, headers });
+    
+    if (!res.ok) {
+      throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+    }
+    
+    return res;
   };
 
   React.useEffect(() => {
