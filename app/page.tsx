@@ -81,11 +81,20 @@ export default function Dashboard() {
 
   const handleConnect = async () => {
     if (!shop) return;
+    console.log('Initiating Instagram connection...');
     try {
       const res = await authenticatedFetch(`/api/instagram/auth?shop=${shop}`);
+      console.log('Auth URL response status:', res.status);
       const data = await res.json();
+      console.log('Auth URL response data:', data);
       if (data.authUrl) {
-        window.open(data.authUrl, 'InstagramAuth', 'width=600,height=600');
+        const popup = window.open(data.authUrl, 'InstagramAuth', 'width=600,height=600');
+        if (!popup) {
+          console.error('Popup was blocked by the browser.');
+          alert('Please allow popups for this site to connect your Instagram account.');
+        }
+      } else {
+        console.error('No authUrl in response');
       }
     } catch (error) {
       console.error('Error initiating connection:', error);

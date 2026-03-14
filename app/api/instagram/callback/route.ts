@@ -120,10 +120,18 @@ export async function GET(request: Request) {
       <html>
         <body>
           <script>
+            console.log('Popup loaded, opener:', window.opener);
             if (window.opener) {
-              window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
-              window.close();
+              console.log('Sending message to opener...');
+              try {
+                window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
+                console.log('Message sent.');
+              } catch (e) {
+                console.error('Error sending message:', e);
+              }
+              // window.close();
             } else {
+              console.log('No opener, redirecting...');
               window.location.href = '/?shop=${shop}&ig_connected=true';
             }
           </script>
