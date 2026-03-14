@@ -71,6 +71,7 @@ export default function Dashboard() {
   };
 
   React.useEffect(() => {
+    console.log('useEffect triggered');
     // App Bridge automatically appends shop to the URL
     const urlParams = new URLSearchParams(window.location.search);
     const shopParam = urlParams.get('shop');
@@ -78,6 +79,7 @@ export default function Dashboard() {
     setShop(shopParam);
 
     if (shopParam) {
+      console.log('Fetching data for shop:', shopParam);
       authenticatedFetch(`/api/billing/status?shop=${shopParam}`)
         .then(res => res.json())
         .then(data => {
