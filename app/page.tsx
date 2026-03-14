@@ -36,7 +36,7 @@ export default function Dashboard() {
       
       // Create a timeout promise to prevent hanging
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Shopify ID token retrieval timed out')), 5000)
+        setTimeout(() => reject(new Error('Shopify ID token retrieval timed out')), 2000)
       );
 
       if (window.shopify && window.shopify.idToken) {
@@ -47,7 +47,8 @@ export default function Dashboard() {
         console.warn('window.shopify.idToken not found');
       }
     } catch (e) {
-      console.error('Could not get Shopify ID token', e);
+      console.error('Could not get Shopify ID token (proceeding anyway):', e);
+      // We do NOT re-throw here, allowing the app to proceed without the token
     }
 
     const headers = new Headers(options.headers || {});
@@ -58,7 +59,11 @@ export default function Dashboard() {
     console.log(`Fetching ${url}...`);
     const res = await fetch(url, { ...options, headers });
     
-    if (!res.ok) {
+    // If the backend returns 401, it means the token was missing or invalid.
+    // We log it, but we don't throw an error that stops the app from loading.
+    if (res.status === 401) {
+      console.warn(`Unauthorized access to ${url}. Token might be missing or invalid.`);
+    } else if (!res.ok) {
       throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
     }
     
