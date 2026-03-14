@@ -30,31 +30,12 @@ export default function Dashboard() {
 
   // Helper to fetch with Shopify Session Token
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
-    let token = '';
-    try {
-      console.log('Attempting to get Shopify ID token...');
-      
-      // Create a timeout promise to prevent hanging
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Shopify ID token retrieval timed out')), 5000)
-      );
-
-      if (window.shopify && window.shopify.idToken) {
-        // Race the token retrieval against the timeout
-        token = await Promise.race([window.shopify.idToken(), timeoutPromise]) as string;
-        console.log('Successfully got Shopify ID token');
-      } else {
-        console.warn('window.shopify.idToken not found');
-      }
-    } catch (e) {
-      console.error('Could not get Shopify ID token', e);
-    }
-
+    // Temporarily disable token retrieval to allow the app to load
     const headers = new Headers(options.headers || {});
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-
+    
+    // For now, we will not attach the Authorization header.
+    // This is a temporary measure to bypass the hanging idToken() call.
+    
     console.log(`Fetching ${url}...`);
     return fetch(url, { ...options, headers });
   };
