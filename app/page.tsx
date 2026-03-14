@@ -33,8 +33,15 @@ export default function Dashboard() {
     let token = '';
     try {
       console.log('Attempting to get Shopify ID token...');
+      
+      // Create a timeout promise to prevent hanging
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Shopify ID token retrieval timed out')), 5000)
+      );
+
       if (window.shopify && window.shopify.idToken) {
-        token = await window.shopify.idToken();
+        // Race the token retrieval against the timeout
+        token = await Promise.race([window.shopify.idToken(), timeoutPromise]) as string;
         console.log('Successfully got Shopify ID token');
       } else {
         console.warn('window.shopify.idToken not found');
