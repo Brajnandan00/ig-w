@@ -14,17 +14,22 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
         <script dangerouslySetInnerHTML={{
           __html: `
-            window.shopify = {
-              idToken: async () => {
-                const app = window['app-bridge'];
-                if (!app) throw new Error('App Bridge not initialized');
-                const appInstance = app.default.create({
-                  apiKey: "${process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || ""}",
-                  host: new URLSearchParams(window.location.search).get("host"),
-                });
-                return await appInstance.sessionToken();
-              }
-            };
+            (function() {
+              let appInstance = null;
+              window.shopify = {
+                idToken: async () => {
+                  if (!appInstance) {
+                    const app = window['app-bridge'];
+                    if (!app) throw new Error('App Bridge not initialized');
+                    appInstance = app.default.create({
+                      apiKey: "${process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || ""}",
+                      host: new URLSearchParams(window.location.search).get("host"),
+                    });
+                  }
+                  return await appInstance.sessionToken();
+                }
+              };
+            })();
           `
         }} />
       </head>

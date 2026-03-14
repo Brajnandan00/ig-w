@@ -75,7 +75,7 @@ export default function Dashboard() {
       const res = await authenticatedFetch(`/api/instagram/auth?shop=${shop}`);
       const data = await res.json();
       if (data.authUrl) {
-        window.open(data.authUrl, '_top');
+        window.open(data.authUrl, 'InstagramAuth', 'width=600,height=600');
       }
     } catch (error) {
       console.error('Error initiating connection:', error);
