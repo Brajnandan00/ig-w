@@ -56,7 +56,7 @@ export default function Dashboard() {
       headers.set('Authorization', `Bearer ${token}`);
     }
 
-    console.log(`Fetching ${url}...`);
+    console.log(`Fetching full URL: ${window.location.origin}${url}`);
     const res = await fetch(url, { ...options, headers });
     
     // If the backend returns 401, it means the token was missing or invalid.
