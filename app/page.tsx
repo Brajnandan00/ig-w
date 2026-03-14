@@ -6,13 +6,27 @@ import { Settings, Aperture } from 'lucide-react';
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [shop, setShop] = useState<string | null>(null);
+  const [isEmbedded, setIsEmbedded] = useState(true);
 
   // Robust authenticated fetch
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     console.log('authenticatedFetch called for:', url);
     
-    // Temporarily skipping token retrieval to debug
+    let token = '';
+    try {
+      if ((window as any).shopify && (window as any).shopify.idToken) {
+        token = await (window as any).shopify.idToken();
+      }
+    } catch (e) {
+      console.warn('Could not get Shopify token:', e);
+    }
+    
     const headers = new Headers(options.headers || {});
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    } else {
+      console.warn('No token available for authenticatedFetch');
+    }
     
     console.log('Sending fetch request to:', url);
     const res = await fetch(url, { ...options, headers });
@@ -32,8 +46,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const shopParam = urlParams.get('shop');
+    const shopParam = urlParams.get('shop') || 'facebook-test-shop.myshopify.com';
     setShop(shopParam);
+    try {
+      // Temporarily bypass embedded check for Facebook testing
+      setIsEmbedded(true); // window.self !== window.top
+    } catch (e) {
+      setIsEmbedded(true);
+    }
     setLoading(false);
   }, []);
 
@@ -130,6 +150,19 @@ export default function Dashboard() {
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-zinc-200 text-center max-w-md">
           <h2 className="text-xl font-bold mb-2">Shop parameter missing</h2>
           <p className="text-zinc-600">Please open this app within your Shopify Admin.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isEmbedded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-zinc-200 text-center max-w-md">
+          <Aperture className="w-12 h-12 text-indigo-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold mb-2">App Must Be Embedded</h2>
+          <p className="text-zinc-600 mb-4">This app is designed to run inside the Shopify Admin. Please open it from your Shopify store's Apps section.</p>
+          <p className="text-sm text-zinc-500">If you are testing locally, ensure you have installed the app on a development store and are opening it through the Shopify Partner Dashboard.</p>
         </div>
       </div>
     );
