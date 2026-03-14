@@ -30,12 +30,67 @@ export default function Dashboard() {
     return res;
   };
 
+  const [igConnected, setIgConnected] = useState(false);
+  const [igUsername, setIgUsername] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const shopParam = urlParams.get('shop');
     setShop(shopParam);
     setLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (shop) {
+      authenticatedFetch(`/api/instagram/status?shop=${shop}`)
+        .then(res => res.json())
+        .then(data => {
+          setIgConnected(data.connected);
+          if (data.connected) {
+            setIgUsername(data.username);
+            setLastSyncedAt(data.lastSyncedAt);
+          }
+        })
+        .catch(err => console.error('Instagram status fetch failed:', err));
+    }
+  }, [shop]);
+
+  const handleConnect = async () => {
+    if (!shop) return;
+    try {
+      const res = await authenticatedFetch(`/api/instagram/auth?shop=${shop}`);
+      const data = await res.json();
+      if (data.authUrl) {
+        window.open(data.authUrl, '_top');
+      }
+    } catch (error) {
+      console.error('Error initiating connection:', error);
+    }
+  };
+
+  const handleSync = async () => {
+    if (!shop) return;
+    setIsSyncing(true);
+    try {
+      const res = await authenticatedFetch(`/api/instagram/sync?shop=${shop}`, { method: 'POST' });
+      if (res.ok) {
+        setLastSyncedAt(new Date().toISOString());
+      }
+    } catch (error) {
+      console.error('Error syncing posts:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!shop) return;
+    await authenticatedFetch(`/api/instagram/disconnect?shop=${shop}`, { method: 'POST' });
+    window.location.reload();
+  };
+
 
   if (loading) {
     return (
