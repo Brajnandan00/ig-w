@@ -25,16 +25,22 @@ export default function Dashboard() {
   const [igUsername, setIgUsername] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [galleryTitle, setGalleryTitle] = useState('Follow Our Social Feed');
+  const [gallerySubtitle, setGallerySubtitle] = useState('Tag us in your photos to be featured on our gallery. Discover how others are styling our products.');
 
   // Helper to fetch with Shopify Session Token
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     let token = '';
     try {
+      console.log('Attempting to get Shopify ID token...');
       if (window.shopify && window.shopify.idToken) {
         token = await window.shopify.idToken();
+        console.log('Successfully got Shopify ID token');
+      } else {
+        console.warn('window.shopify.idToken not found');
       }
     } catch (e) {
-      console.warn('Could not get Shopify ID token', e);
+      console.error('Could not get Shopify ID token', e);
     }
 
     const headers = new Headers(options.headers || {});
@@ -42,6 +48,7 @@ export default function Dashboard() {
       headers.set('Authorization', `Bearer ${token}`);
     }
 
+    console.log(`Fetching ${url}...`);
     return fetch(url, { ...options, headers });
   };
 
@@ -49,29 +56,36 @@ export default function Dashboard() {
     // App Bridge automatically appends shop to the URL
     const urlParams = new URLSearchParams(window.location.search);
     const shopParam = urlParams.get('shop');
+    console.log('Shop parameter:', shopParam);
     setShop(shopParam);
 
     if (shopParam) {
       authenticatedFetch(`/api/billing/status?shop=${shopParam}`)
         .then(res => res.json())
         .then(data => {
+          console.log('Billing status fetched:', data);
           setIsPremium(data.hasActivePayment);
           setTier(data.hasActivePayment ? 'premium' : 'free');
           setLoadingBilling(false);
         })
-        .catch(() => setLoadingBilling(false));
+        .catch((err) => {
+          console.error('Billing status fetch failed:', err);
+          setLoadingBilling(false);
+        });
 
       authenticatedFetch(`/api/instagram/status?shop=${shopParam}`)
         .then(res => res.json())
         .then(data => {
+          console.log('Instagram status fetched:', data);
           setIgConnected(data.connected);
           if (data.connected) {
             setIgUsername(data.username);
             setLastSyncedAt(data.lastSyncedAt);
           }
         })
-        .catch(console.error);
+        .catch(err => console.error('Instagram status fetch failed:', err));
     } else {
+      console.log('No shop parameter, setting loadingBilling to false');
       setLoadingBilling(false);
     }
   }, []);
@@ -365,6 +379,27 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Content Configuration */}
+            <div className="mb-8 pt-6 border-t border-zinc-200">
+              <label className="block text-sm font-medium text-zinc-700 mb-3">Gallery Content</label>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={galleryTitle}
+                  onChange={(e) => setGalleryTitle(e.target.value)}
+                  className="w-full p-2 border border-zinc-200 rounded-lg text-sm"
+                  placeholder="Gallery Title"
+                />
+                <textarea
+                  value={gallerySubtitle}
+                  onChange={(e) => setGallerySubtitle(e.target.value)}
+                  className="w-full p-2 border border-zinc-200 rounded-lg text-sm"
+                  rows={3}
+                  placeholder="Gallery Subtitle"
+                />
+              </div>
+            </div>
+
             {/* Integration Code */}
             <div className="pt-6 border-t border-zinc-200">
               <label className="block text-sm font-medium text-zinc-700 mb-3">Shopify Integration</label>
@@ -426,9 +461,9 @@ export default function Dashboard() {
             <div className="p-8 flex-1 overflow-y-auto bg-white">
               <div className="max-w-5xl mx-auto">
                 <div className="text-center mb-12">
-                  <h2 className="text-3xl font-serif text-zinc-900 mb-4">Follow Our Social Feed</h2>
+                  <h2 className="text-3xl font-serif text-zinc-900 mb-4">{galleryTitle}</h2>
                   <p className="text-zinc-500 max-w-2xl mx-auto">
-                    Tag us in your photos to be featured on our gallery. Discover how others are styling our products.
+                    {gallerySubtitle}
                   </p>
                 </div>
                 
