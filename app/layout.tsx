@@ -16,11 +16,21 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
           __html: `
             (function() {
               let appInstance = null;
+              let appBridgePromise = new Promise((resolve) => {
+                const checkAppBridge = () => {
+                  if (window['app-bridge']) {
+                    resolve(window['app-bridge']);
+                  } else {
+                    setTimeout(checkAppBridge, 100);
+                  }
+                };
+                checkAppBridge();
+              });
+
               window.shopify = {
                 idToken: async () => {
                   if (!appInstance) {
-                    const app = window['app-bridge'];
-                    if (!app) throw new Error('App Bridge not initialized');
+                    const app = await appBridgePromise;
                     appInstance = app.default.create({
                       apiKey: "${process.env.NEXT_PUBLIC_SHOPIFY_API_KEY || ""}",
                       host: new URLSearchParams(window.location.search).get("host"),

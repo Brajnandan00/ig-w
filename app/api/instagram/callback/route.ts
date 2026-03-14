@@ -115,10 +115,24 @@ export async function GET(request: Request) {
       }
     }).catch(console.error);
 
-    // 6. Redirect back to the app dashboard
-    // Since we are in an iframe, we need to redirect to the Shopify admin URL for this app
-    // The easiest way is to redirect back to the root which will handle App Bridge
-    return NextResponse.redirect(`${process.env.APP_URL}/?shop=${shop}&ig_connected=true`);
+    // 6. Return HTML to close popup and notify opener
+    return new NextResponse(`
+      <html>
+        <body>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*');
+              window.close();
+            } else {
+              window.location.href = '/?shop=${shop}&ig_connected=true';
+            }
+          </script>
+          <p>Authentication successful. This window should close automatically.</p>
+        </body>
+      </html>
+    `, {
+      headers: { 'Content-Type': 'text/html' }
+    });
 
   } catch (error) {
     console.error('Instagram Callback Error:', error);

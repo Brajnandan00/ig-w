@@ -45,6 +45,16 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  useEffect(() => {
     if (shop) {
       // Fetch Instagram status
       authenticatedFetch(`/api/instagram/status?shop=${shop}`)
