@@ -11,6 +11,14 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
+declare global {
+  interface Window {
+    shopify?: {
+      idToken: () => Promise<string>;
+    };
+  }
+}
+
 interface MediaItem {
   id: string;
   caption: string;
@@ -62,9 +70,17 @@ export default function GalleryWidget({ layout, tier, count, shop, isAdmin }: Ga
     if (!isAdmin || !shop) return;
 
     try {
+      let token = '';
+      if (window.shopify && window.shopify.idToken) {
+        token = await window.shopify.idToken();
+      }
+      
       const res = await fetch('/api/media/toggle-visibility', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ shop, mediaId: item.id, isHidden: !item.isHidden }),
       });
       
@@ -236,6 +252,20 @@ export default function GalleryWidget({ layout, tier, count, shop, isAdmin }: Ga
     return (
       <div className="w-full h-64 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (media.length === 0) {
+    return (
+      <div className="w-full h-64 flex flex-col items-center justify-center bg-zinc-50 rounded-2xl border border-dashed border-zinc-300">
+        <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mb-4">
+          <Layers className="text-zinc-400" size={24} />
+        </div>
+        <h3 className="text-lg font-medium text-zinc-900 mb-1">No posts found</h3>
+        <p className="text-sm text-zinc-500 text-center max-w-sm">
+          Connect your Instagram account and sync your posts to see them here.
+        </p>
       </div>
     );
   }

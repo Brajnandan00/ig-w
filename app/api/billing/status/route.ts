@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { shopify } from '@/lib/shopify';
 import { prisma } from '@/lib/prisma';
 import { Session } from '@shopify/shopify-api';
+import { authenticate } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const shop = url.searchParams.get('shop');
+  const authShop = await authenticate(req);
 
-  if (!shop) {
-    return NextResponse.json({ error: 'Missing shop parameter' }, { status: 400 });
+  if (!authShop) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const shop = authShop;
 
   try {
     const sessionData = await prisma.session.findFirst({ where: { shop } });

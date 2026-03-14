@@ -1,66 +1,127 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get('code');
-  const state = url.searchParams.get('state');
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const code = searchParams.get('code');
+  const state = searchParams.get('state');
 
-  if (!code || !state) return new NextResponse('Missing code or state', { status: 400 });
+  if (!code || !state) {
+    return new NextResponse('Missing code or state', { status: 400 });
+  }
+
+  let shop = '';
+  try {
+    const decodedState = JSON.parse(decodeURIComponent(state));
+    shop = decodedState.shop;
+  } catch (e) {
+    return new NextResponse('Invalid state parameter', { status: 400 });
+  }
+
+  if (!shop) {
+    return new NextResponse('Missing shop in state', { status: 400 });
+  }
+
+  const clientId = process.env.INSTAGRAM_APP_ID;
+  const clientSecret = process.env.INSTAGRAM_APP_SECRET;
+  const redirectUri = `${process.env.APP_URL}/api/instagram/callback`;
+
+  if (!clientId || !clientSecret || !process.env.APP_URL) {
+    return new NextResponse('Instagram integration is not configured.', { status: 500 });
+  }
 
   try {
-    const { shop } = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));
-    const redirectUri = `${process.env.APP_URL}/api/instagram/callback`;
-
     // 1. Exchange code for short-lived token
+    const tokenForm = new URLSearchParams();
+    tokenForm.append('client_id', clientId);
+    tokenForm.append('client_secret', clientSecret);
+    tokenForm.append('grant_type', 'authorization_code');
+    tokenForm.append('redirect_uri', redirectUri);
+    tokenForm.append('code', code);
+
     const tokenRes = await fetch('https://api.instagram.com/oauth/access_token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: process.env.INSTAGRAM_APP_ID || '',
-        client_secret: process.env.INSTAGRAM_APP_SECRET || '',
-        grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-        code,
-      })
+      body: tokenForm,
     });
-    const tokenData = await tokenRes.json();
-    if (tokenData.error_message) throw new Error(tokenData.error_message);
 
-    // 2. Exchange for long-lived token
-    const longTokenRes = await fetch(`https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${process.env.INSTAGRAM_APP_SECRET}&access_token=${tokenData.access_token}`);
-    const longTokenData = await longTokenRes.json();
+    const tokenData = await tokenRes.json();
+
+    if (tokenData.error_message) {
+      console.error('Instagram Token Error:', tokenData);
+      return new NextResponse(`Instagram Error: ${tokenData.error_message}`, { status: 400 });
+    }
+
+    const shortLivedToken = tokenData.access_token;
+    const userId = tokenData.user_id;
+
+    // 2. Exchange short-lived token for long-lived token
+    const longLivedUrl = `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLivedToken}`;
+    const longLivedRes = await fetch(longLivedUrl);
+    const longLivedData = await longLivedRes.json();
+
+    if (longLivedData.error) {
+      console.error('Instagram Long Lived Token Error:', longLivedData);
+      return new NextResponse(`Instagram Error: ${longLivedData.error.message}`, { status: 400 });
+    }
+
+    const longLivedToken = longLivedData.access_token;
+    const expiresIn = longLivedData.expires_in; // seconds
+    const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
     // 3. Get user profile
-    const profileRes = await fetch(`https://graph.instagram.com/me?fields=id,username&access_token=${longTokenData.access_token}`);
+    const profileUrl = `https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${longLivedToken}`;
+    const profileRes = await fetch(profileUrl);
     const profileData = await profileRes.json();
+
+    if (profileData.error) {
+      console.error('Instagram Profile Error:', profileData);
+      return new NextResponse(`Instagram Error: ${profileData.error.message}`, { status: 400 });
+    }
+
+    const username = profileData.username;
+    const igUserId = profileData.id;
 
     // 4. Save to database
     await prisma.instagramAccount.upsert({
-      where: { shopDomain_igUsername: { shopDomain: shop, igUsername: profileData.username } },
+      where: {
+        shopDomain_igUsername: {
+          shopDomain: shop,
+          igUsername: username,
+        }
+      },
       update: {
-        igUserId: profileData.id,
-        igBusinessAccountId: profileData.id,
-        accessToken: longTokenData.access_token,
-        refreshTokenExpires: new Date(Date.now() + longTokenData.expires_in * 1000),
+        accessToken: longLivedToken,
+        refreshTokenExpires: expiresAt,
+        igUserId: igUserId,
+        igBusinessAccountId: igUserId, // Using the same ID for basic display API
+        followerCount: 0, // Basic Display API doesn't provide follower count
       },
       create: {
         shopDomain: shop,
-        igUserId: profileData.id,
-        igBusinessAccountId: profileData.id,
-        igUsername: profileData.username,
-        accessToken: longTokenData.access_token,
-        refreshTokenExpires: new Date(Date.now() + longTokenData.expires_in * 1000),
+        igUserId: igUserId,
+        igBusinessAccountId: igUserId,
+        igUsername: username,
+        accessToken: longLivedToken,
+        refreshTokenExpires: expiresAt,
+        followerCount: 0,
       }
     });
 
-    // Trigger initial sync in the background
-    fetch(`${process.env.APP_URL}/api/instagram/sync?shop=${shop}`, { method: 'POST' }).catch(console.error);
+    // 5. Trigger initial sync in the background
+    fetch(`${process.env.APP_URL}/api/instagram/sync?shop=${shop}`, { 
+      method: 'POST',
+      headers: {
+        'x-internal-secret': process.env.SESSION_SECRET || ''
+      }
+    }).catch(console.error);
 
-    // Redirect back to app
-    return NextResponse.redirect(`https://admin.shopify.com/store/${shop.split('.')[0]}/apps/${process.env.SHOPIFY_API_KEY}`);
+    // 6. Redirect back to the app dashboard
+    // Since we are in an iframe, we need to redirect to the Shopify admin URL for this app
+    // The easiest way is to redirect back to the root which will handle App Bridge
+    return NextResponse.redirect(`${process.env.APP_URL}/?shop=${shop}&ig_connected=true`);
+
   } catch (error) {
-    console.error('Instagram callback error:', error);
-    return new NextResponse('Authentication failed', { status: 500 });
+    console.error('Instagram Callback Error:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

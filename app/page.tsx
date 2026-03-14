@@ -1,8 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Settings, LayoutGrid, Columns, GalleryHorizontalEnd, Crown, CheckCircle2, Copy, ExternalLink, Aperture } from 'lucide-react';
+import { Settings, LayoutGrid, Columns, GalleryHorizontalEnd, Crown, CheckCircle2, Copy, ExternalLink, Aperture, Instagram, RefreshCw } from 'lucide-react';
 import GalleryWidget from '@/components/GalleryWidget';
+
+declare global {
+  interface Window {
+    shopify?: {
+      idToken: () => Promise<string>;
+    };
+  }
+}
 
 export default function Dashboard() {
   const [layout, setLayout] = useState<'grid' | 'masonry' | 'carousel'>('grid');
@@ -13,6 +21,29 @@ export default function Dashboard() {
   const [copied, setCopied] = useState(false);
   const [shop, setShop] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(true);
+  const [igConnected, setIgConnected] = useState(false);
+  const [igUsername, setIgUsername] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
+  // Helper to fetch with Shopify Session Token
+  const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+    let token = '';
+    try {
+      if (window.shopify && window.shopify.idToken) {
+        token = await window.shopify.idToken();
+      }
+    } catch (e) {
+      console.warn('Could not get Shopify ID token', e);
+    }
+
+    const headers = new Headers(options.headers || {});
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return fetch(url, { ...options, headers });
+  };
 
   React.useEffect(() => {
     // App Bridge automatically appends shop to the URL
@@ -21,7 +52,7 @@ export default function Dashboard() {
     setShop(shopParam);
 
     if (shopParam) {
-      fetch(`/api/billing/status?shop=${shopParam}`)
+      authenticatedFetch(`/api/billing/status?shop=${shopParam}`)
         .then(res => res.json())
         .then(data => {
           setIsPremium(data.hasActivePayment);
@@ -29,22 +60,72 @@ export default function Dashboard() {
           setLoadingBilling(false);
         })
         .catch(() => setLoadingBilling(false));
+
+      authenticatedFetch(`/api/instagram/status?shop=${shopParam}`)
+        .then(res => res.json())
+        .then(data => {
+          setIgConnected(data.connected);
+          if (data.connected) {
+            setIgUsername(data.username);
+            setLastSyncedAt(data.lastSyncedAt);
+          }
+        })
+        .catch(console.error);
     } else {
       setLoadingBilling(false);
     }
   }, []);
 
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (shop) {
-      window.open(`/api/instagram/auth?shop=${shop}`, '_top');
+      try {
+        const res = await authenticatedFetch(`/api/instagram/auth?shop=${shop}`);
+        const data = await res.json();
+        if (data.authUrl) {
+          window.open(data.authUrl, '_top');
+        } else {
+          console.error('Failed to get Instagram auth URL');
+        }
+      } catch (error) {
+        console.error('Error initiating connection:', error);
+      }
     } else {
-      alert('Shop parameter missing. Please open this app within Shopify Admin.');
+      console.error('Shop parameter missing. Please open this app within Shopify Admin.');
     }
   };
 
-  const handleUpgrade = () => {
+  const handleSync = async () => {
+    if (!shop) return;
+    setIsSyncing(true);
+    try {
+      const res = await authenticatedFetch(`/api/instagram/sync?shop=${shop}`, { method: 'POST' });
+      if (res.ok) {
+        setLastSyncedAt(new Date().toISOString());
+        // Force a reload of the widget
+        window.location.reload();
+      } else {
+        console.error('Failed to sync posts. Please try again.');
+      }
+    } catch (error) {
+      console.error('An error occurred while syncing.', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleUpgrade = async () => {
     if (shop) {
-      window.open(`/api/billing/subscribe?shop=${shop}`, '_top');
+      try {
+        const res = await authenticatedFetch(`/api/billing/subscribe?shop=${shop}`);
+        const data = await res.json();
+        if (data.confirmationUrl) {
+          window.open(data.confirmationUrl, '_top');
+        } else {
+          console.error('Failed to get billing confirmation URL');
+        }
+      } catch (error) {
+        console.error('Error initiating upgrade:', error);
+      }
     }
   };
 
@@ -82,6 +163,58 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 mb-6">
               <Settings size={20} className="text-zinc-500" />
               <h2 className="text-lg font-semibold">Widget Settings</h2>
+            </div>
+
+            {/* Instagram Connection */}
+            <div className="mb-8">
+              <label className="block text-sm font-medium text-zinc-700 mb-3">Instagram Account</label>
+              {igConnected ? (
+                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-400 to-fuchsia-600 p-[2px]">
+                      <div className="w-full h-full bg-white rounded-full flex items-center justify-center">
+                        <Instagram size={20} className="text-zinc-900" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">@{igUsername}</div>
+                      <div className="text-xs text-zinc-500">Connected</div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        // In a real app, use a custom modal. For now, just disconnect directly
+                        // since we cannot use window.confirm in an iframe.
+                        await authenticatedFetch(`/api/instagram/disconnect?shop=${shop}`, { method: 'POST' });
+                        window.location.reload();
+                      }}
+                      className="text-xs text-red-500 hover:text-red-600 font-medium px-2 py-1 rounded-md hover:bg-red-50 transition-colors"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleSync}
+                    disabled={isSyncing}
+                    className="w-full py-2 px-3 bg-white border border-zinc-200 hover:border-zinc-300 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+                    {isSyncing ? 'Syncing...' : 'Sync Posts'}
+                  </button>
+                  {lastSyncedAt && (
+                    <div className="text-xs text-center text-zinc-400 mt-2">
+                      Last synced: {new Date(lastSyncedAt).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={handleConnect}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
+                >
+                  <Instagram size={18} />
+                  Connect Instagram
+                </button>
+              )}
             </div>
 
             {/* Tier Selection */}

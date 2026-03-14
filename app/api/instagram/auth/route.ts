@@ -1,18 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
+import { authenticate } from '@/lib/auth';
 
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const shop = url.searchParams.get('shop');
-  
-  if (!shop) return new NextResponse('Missing shop parameter', { status: 400 });
+export async function GET(request: NextRequest) {
+  const authShop = await authenticate(request);
+
+  if (!authShop) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const shop = authShop;
 
   const clientId = process.env.INSTAGRAM_APP_ID;
   const redirectUri = `${process.env.APP_URL}/api/instagram/callback`;
-  
-  // Pass shop domain in state to recover it in callback
-  const state = Buffer.from(JSON.stringify({ shop })).toString('base64');
 
-  const igAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user_profile,user_media&response_type=code&state=${state}`;
+  if (!clientId || !process.env.APP_URL) {
+    return new NextResponse('Instagram integration is not configured. Please set INSTAGRAM_APP_ID and APP_URL environment variables.', { status: 500 });
+  }
 
-  return NextResponse.redirect(igAuthUrl);
+  // Pass the shop domain in the state parameter to retrieve it in the callback
+  const state = encodeURIComponent(JSON.stringify({ shop }));
+
+  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user_profile,user_media&response_type=code&state=${state}`;
+
+  return NextResponse.json({ authUrl });
 }

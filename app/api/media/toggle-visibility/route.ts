@@ -1,13 +1,17 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { authenticate } from '@/lib/auth';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { shop, mediaId, isHidden } = body;
+    const { shop: shopQuery, mediaId, isHidden } = body;
+
+    const authShop = await authenticate(request);
+    const shop = authShop || shopQuery;
 
     if (!shop || !mediaId) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Unauthorized or missing fields' }, { status: 401 });
     }
 
     if (isHidden) {

@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       });
       const hiddenIds = new Set(hiddenPosts.map(hp => hp.mediaId));
 
-      if (dbMedia.length > 0) {
+      if (dbMedia.length >= 0) {
         return NextResponse.json({
           media: dbMedia.map(m => ({
             ...m,

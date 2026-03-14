@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { shopify } from '@/lib/shopify';
 import { prisma } from '@/lib/prisma';
 import { Session } from '@shopify/shopify-api';
+import { authenticate } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const shop = url.searchParams.get('shop');
+  const authShop = await authenticate(req);
 
-  if (!shop) {
-    return new NextResponse('Missing shop parameter', { status: 400 });
+  if (!authShop) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const shop = authShop;
 
   try {
     const sessionData = await prisma.session.findFirst({ where: { shop } });
@@ -36,9 +38,9 @@ export async function GET(req: NextRequest) {
       returnUrl: returnUrl,
     });
 
-    return NextResponse.redirect(confirmationUrl);
+    return NextResponse.json({ confirmationUrl });
   } catch (error) {
     console.error('Billing request error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
