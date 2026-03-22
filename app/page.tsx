@@ -46,11 +46,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const shopParam = urlParams.get('shop') || 'facebook-test-shop.myshopify.com';
+    const shopParam = urlParams.get('shop');
     setShop(shopParam);
     try {
-      // Temporarily bypass embedded check for Facebook testing
-      setIsEmbedded(true); // window.self !== window.top
+      setIsEmbedded(window.self !== window.top);
     } catch (e) {
       setIsEmbedded(true);
     }
