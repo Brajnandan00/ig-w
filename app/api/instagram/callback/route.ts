@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     const userId = tokenData.user_id;
 
     // 2. Exchange short-lived token for long-lived token
-    const longLivedUrl = `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLivedToken}`;
+    const longLivedUrl = `https://graph.instagram.com/v25.0/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLivedToken}`;
     const longLivedRes = await fetch(longLivedUrl);
     const longLivedData = await longLivedRes.json();
 
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
     // 3. Get user profile
-    const profileUrl = `https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${longLivedToken}`;
+    const profileUrl = `https://graph.instagram.com/v25.0/me?fields=id,username,account_type,media_count&access_token=${longLivedToken}`;
     const profileRes = await fetch(profileUrl);
     const profileData = await profileRes.json();
 
