@@ -24,9 +24,10 @@ export async function GET(request: Request) {
 
   const clientId = process.env.INSTAGRAM_APP_ID;
   const clientSecret = process.env.INSTAGRAM_APP_SECRET;
-  const redirectUri = `${process.env.APP_URL}/api/instagram/callback`;
+  const baseUrl = process.env.APP_URL?.replace(/\/$/, '');
+  const redirectUri = `${baseUrl}/api/instagram/callback`;
 
-  if (!clientId || !clientSecret || !process.env.APP_URL) {
+  if (!clientId || !clientSecret || !baseUrl) {
     return new NextResponse('Instagram integration is not configured.', { status: 500 });
   }
 
@@ -108,7 +109,7 @@ export async function GET(request: Request) {
     });
 
     // 5. Trigger initial sync in the background
-    fetch(`${process.env.APP_URL}/api/instagram/sync?shop=${shop}`, { 
+    fetch(`${baseUrl}/api/instagram/sync?shop=${shop}`, { 
       method: 'POST',
       headers: {
         'x-internal-secret': process.env.SESSION_SECRET || ''

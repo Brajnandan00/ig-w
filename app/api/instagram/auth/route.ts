@@ -11,9 +11,10 @@ export async function GET(request: NextRequest) {
   const shop = authShop;
 
   const clientId = process.env.INSTAGRAM_APP_ID;
-  const redirectUri = `${process.env.APP_URL}/api/instagram/callback`;
+  const baseUrl = process.env.APP_URL?.replace(/\/$/, '');
+  const redirectUri = `${baseUrl}/api/instagram/callback`;
 
-  if (!clientId || !process.env.APP_URL) {
+  if (!clientId || !baseUrl) {
     return new NextResponse('Instagram integration is not configured. Please set INSTAGRAM_APP_ID and APP_URL environment variables.', { status: 500 });
   }
 
