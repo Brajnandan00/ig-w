@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
     const confirmationUrl = await shopify.billing.request({
       session,
       plan: 'Premium Plan',
-      isTest: true, // Use test billing for development
+      isTest: process.env.NODE_ENV !== 'production',
       returnUrl: returnUrl,
     });
 

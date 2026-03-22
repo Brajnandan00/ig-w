@@ -8,10 +8,10 @@ export default function Dashboard() {
   const [shop, setShop] = useState<string | null>(null);
   const [isEmbedded, setIsEmbedded] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   // Robust authenticated fetch
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
-    console.log('authenticatedFetch called for:', url);
-    
     let token = '';
     try {
       if ((window as any).shopify && (window as any).shopify.idToken) {
@@ -24,13 +24,9 @@ export default function Dashboard() {
     const headers = new Headers(options.headers || {});
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
-    } else {
-      console.warn('No token available for authenticatedFetch');
     }
     
-    console.log('Sending fetch request to:', url);
     const res = await fetch(url, { ...options, headers });
-    console.log('Fetch response status:', res.status);
     if (!res.ok && res.status !== 401) {
       throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
     }
@@ -93,47 +89,93 @@ export default function Dashboard() {
 
   const handleConnect = async () => {
     if (!shop) return;
-    console.log('Initiating Instagram connection...');
+    setError(null);
     try {
       const res = await authenticatedFetch(`/api/instagram/auth?shop=${shop}`);
-      console.log('Auth URL response status:', res.status);
       const data = await res.json();
-      console.log('Auth URL response data:', data);
       if (data.authUrl) {
         const popup = window.open(data.authUrl, 'InstagramAuth', 'width=600,height=600');
         if (!popup) {
-          console.error('Popup was blocked by the browser.');
-          alert('Please allow popups for this site to connect your Instagram account.');
+          setError('Popup was blocked by the browser. Please allow popups for this site to connect your Instagram account.');
         }
       } else {
-        console.error('No authUrl in response');
+        setError('Failed to get authentication URL. Please try again.');
       }
-    } catch (error) {
-      console.error('Error initiating connection:', error);
+    } catch (err) {
+      console.error('Error initiating connection:', err);
+      setError('An error occurred while connecting to Instagram.');
     }
   };
 
   const handleSync = async () => {
     if (!shop) return;
     setIsSyncing(true);
+    setError(null);
     try {
       const res = await authenticatedFetch(`/api/instagram/sync?shop=${shop}`, { method: 'POST' });
       if (res.ok) {
         setLastSyncedAt(new Date().toISOString());
+      } else {
+        const errorText = await res.text();
+        setError(`Failed to sync posts: ${errorText}`);
       }
-    } catch (error) {
-      console.error('Error syncing posts:', error);
+    } catch (err) {
+      console.error('Error syncing posts:', err);
+      setError('An error occurred while syncing posts. Please try again.');
     } finally {
       setIsSyncing(false);
     }
   };
 
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
   const handleDisconnect = async () => {
     if (!shop) return;
-    await authenticatedFetch(`/api/instagram/disconnect?shop=${shop}`, { method: 'POST' });
-    window.location.reload();
+    setIsDisconnecting(true);
+    setError(null);
+    try {
+      const res = await authenticatedFetch(`/api/instagram/disconnect?shop=${shop}`, { method: 'POST' });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        const errorText = await res.text();
+        setError(`Failed to disconnect: ${errorText}`);
+        setIsDisconnecting(false);
+      }
+    } catch (err) {
+      console.error('Error disconnecting:', err);
+      setError('An error occurred while disconnecting. Please try again.');
+      setIsDisconnecting(false);
+    }
   };
 
+
+  const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const handleSubscribe = async () => {
+    if (!shop) return;
+    setIsSubscribing(true);
+    setError(null);
+    try {
+      const res = await authenticatedFetch(`/api/billing/subscribe?shop=${shop}`);
+      const data = await res.json();
+      if (data.confirmationUrl) {
+        // Redirect top window to confirmation URL
+        if (window.top) {
+          window.top.location.href = data.confirmationUrl;
+        } else {
+          window.location.href = data.confirmationUrl;
+        }
+      } else {
+        setError('Failed to get subscription URL. Please try again.');
+        setIsSubscribing(false);
+      }
+    } catch (err) {
+      console.error('Error subscribing:', err);
+      setError('An error occurred while initiating subscription.');
+      setIsSubscribing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -183,6 +225,15 @@ export default function Dashboard() {
           <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
           <p className="text-zinc-600 mb-6">Welcome back, {shop}.</p>
 
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-3">
+              <div className="mt-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          )}
+
           <div className="space-y-6">
             {/* Instagram Connection */}
             <div className="p-6 border border-zinc-200 rounded-xl">
@@ -192,21 +243,50 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3">
                     <div className="font-medium">@{igUsername}</div>
                     <div className="text-xs text-zinc-500">Connected</div>
+                    {lastSyncedAt && <div className="text-xs text-zinc-400 ml-2">Last synced: {new Date(lastSyncedAt).toLocaleString()}</div>}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={handleSync} className="px-3 py-1 bg-zinc-100 rounded-md text-sm">Sync</button>
-                    <button onClick={handleDisconnect} className="px-3 py-1 bg-red-100 text-red-600 rounded-md text-sm">Disconnect</button>
+                    <button 
+                      onClick={handleSync} 
+                      disabled={isSyncing || isDisconnecting}
+                      className="px-3 py-1 bg-zinc-100 hover:bg-zinc-200 disabled:opacity-50 rounded-md text-sm transition-colors"
+                    >
+                      {isSyncing ? 'Syncing...' : 'Sync'}
+                    </button>
+                    <button 
+                      onClick={handleDisconnect} 
+                      disabled={isSyncing || isDisconnecting}
+                      className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 rounded-md text-sm transition-colors"
+                    >
+                      {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
+                    </button>
                   </div>
                 </div>
               ) : (
-                <button onClick={handleConnect} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Connect Instagram</button>
+                <button 
+                  onClick={handleConnect} 
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm transition-colors"
+                >
+                  Connect Instagram
+                </button>
               )}
             </div>
             
             {/* Subscription */}
             <div className="p-6 border border-zinc-200 rounded-xl">
               <h3 className="text-lg font-semibold mb-4">Subscription</h3>
-              <p>Current Tier: <span className="font-bold">{tier}</span></p>
+              <div className="flex items-center justify-between">
+                <p>Current Tier: <span className="font-bold capitalize">{tier}</span></p>
+                {tier === 'free' && (
+                  <button 
+                    onClick={handleSubscribe} 
+                    disabled={isSubscribing}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-sm transition-colors"
+                  >
+                    {isSubscribing ? 'Processing...' : 'Upgrade to Premium'}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

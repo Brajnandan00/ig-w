@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     const check = await shopify.billing.check({
       session,
       plans: ['Premium Plan'],
-      isTest: true,
+      isTest: process.env.NODE_ENV !== 'production',
     });
 
     // shopify.billing.check returns a boolean directly

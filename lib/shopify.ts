@@ -10,7 +10,7 @@ export const shopify = shopifyApi({
   hostName: process.env.APP_URL?.replace(/https:\/\//, '') || 'localhost:3000',
   apiVersion: ApiVersion.January25,
   isEmbeddedApp: true,
-  logger: { level: LogSeverity.Info },
+  logger: { level: process.env.NODE_ENV === 'production' ? LogSeverity.Warning : LogSeverity.Info },
   sessionStorage: new PrismaSessionStorage(prisma),
   billing: {
     'Premium Plan': {
