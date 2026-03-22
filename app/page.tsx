@@ -90,18 +90,25 @@ export default function Dashboard() {
   const handleConnect = async () => {
     if (!shop) return;
     setError(null);
+    
+    // Open popup immediately to avoid popup blockers
+    const popup = window.open('', 'InstagramAuth', 'width=600,height=600');
+    if (!popup) {
+      setError('Popup was blocked by the browser. Please allow popups for this site to connect your Instagram account.');
+      return;
+    }
+    
     try {
       const res = await authenticatedFetch(`/api/instagram/auth?shop=${shop}`);
       const data = await res.json();
       if (data.authUrl) {
-        const popup = window.open(data.authUrl, 'InstagramAuth', 'width=600,height=600');
-        if (!popup) {
-          setError('Popup was blocked by the browser. Please allow popups for this site to connect your Instagram account.');
-        }
+        popup.location.href = data.authUrl;
       } else {
+        popup.close();
         setError('Failed to get authentication URL. Please try again.');
       }
     } catch (err) {
+      popup.close();
       console.error('Error initiating connection:', err);
       setError('An error occurred while connecting to Instagram.');
     }
