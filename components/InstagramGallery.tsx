@@ -240,7 +240,6 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
                   autoPlay 
                   loop 
                   className="w-full h-full object-contain"
-                  referrerPolicy="no-referrer"
                 />
               ) : (
                 <Image 
