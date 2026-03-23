@@ -1,0 +1,73 @@
+{% schema %}
+{
+  "name": "Instagram Feed",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Section Title",
+      "default": "Follow Us on Instagram"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "Layout",
+      "options": [
+        { "value": "grid", "label": "Grid" },
+        { "value": "masonry", "label": "Masonry" },
+        { "value": "carousel", "label": "Carousel" }
+      ],
+      "default": "grid"
+    },
+    {
+      "type": "range",
+      "id": "posts_count",
+      "min": 4,
+      "max": 24,
+      "step": 4,
+      "label": "Posts Count",
+      "default": 12
+    },
+    {
+      "type": "header",
+      "content": "App Configuration"
+    },
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App URL",
+      "default": "https://ais-dev-5rken4dxbbq5ag253ugw6a-18710280699.asia-southeast1.run.app",
+      "info": "The URL of your Social Grid app container."
+    }
+  ]
+}
+{% endschema %}
+
+<div class="instagram-feed-container" style="margin: 20px 0; width: 100%;">
+  {% if block.settings.title != blank %}
+    <h2 style="text-align: center; margin-bottom: 20px; font-size: 24px; font-weight: 600;">{{ block.settings.title }}</h2>
+  {% endif %}
+  
+  <iframe 
+    src="{{ block.settings.app_url }}/widget?shop={{ shop.permanent_domain }}&layout={{ block.settings.layout }}&count={{ block.settings.posts_count }}"
+    style="width: 100%; border: none; min-height: 400px; transition: height 0.3s ease;"
+    id="social-grid-iframe-{{ block.id }}"
+    scrolling="no"
+    title="Instagram Feed"
+  ></iframe>
+</div>
+
+<script>
+  (function() {
+    const iframe = document.getElementById('social-grid-iframe-{{ block.id }}');
+    const appUrl = "{{ block.settings.app_url }}";
+    
+    window.addEventListener('message', function(event) {
+      if (event.origin !== appUrl) return;
+      if (event.data.type === 'resize' && event.data.height) {
+        iframe.style.height = event.data.height + 'px';
+      }
+    });
+  })();
+</script>
