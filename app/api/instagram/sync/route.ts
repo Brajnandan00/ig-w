@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
 
     const accessToken = account.accessToken;
 
-    // Fetch media from Instagram Basic Display API
-    const mediaUrl = `https://graph.instagram.com/v25.0/me/media?fields=id,caption,media_type,media_url,permalink,thumbnail_url,timestamp&access_token=${accessToken}&limit=50`;
+    // Fetch media from Instagram API
+    const mediaUrl = `https://graph.instagram.com/v25.0/${account.igUserId}/media?fields=id,caption,media_type,media_url,permalink,thumbnail_url,timestamp&access_token=${accessToken}&limit=50`;
     const mediaRes = await fetch(mediaUrl);
     const mediaData = await mediaRes.json();
 
