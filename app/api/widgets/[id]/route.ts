@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authenticate } from '@/lib/auth';
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const shop = await authenticate(req);
   if (!shop) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -10,7 +10,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   try {
     const data = await req.json();
-    const id = params.id;
+    const id = (await params).id;
 
     // Verify ownership
     const existing = await prisma.feedWidget.findUnique({ where: { id } });
@@ -38,14 +38,14 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const shop = await authenticate(req);
   if (!shop) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const id = params.id;
+    const id = (await params).id;
 
     // Verify ownership
     const existing = await prisma.feedWidget.findUnique({ where: { id } });
