@@ -42,6 +42,8 @@ model InstagramAccount {
   updatedAt DateTime @updatedAt
   
   media InstagramMedia[]
+  stories InstagramStory[]
+  highlights InstagramHighlight[]
   feedSettings FeedSettings?
 
   @@unique([shopDomain, igUsername])
@@ -76,6 +78,49 @@ model InstagramMedia {
   @@index([timestamp])
 }
 
+// Instagram stories
+model InstagramStory {
+  id String @id @db.VarChar(100)
+  shopDomain String @db.VarChar(100)
+  accountId String @db.VarChar(50)
+  mediaType String @db.VarChar(20) // IMAGE, VIDEO
+  mediaUrl String @db.LongText
+  thumbnailUrl String? @db.LongText
+  timestamp DateTime
+  expiresAt DateTime?
+  syncedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  account InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  productTags StoryProductTag[]
+  highlightId String? @db.VarChar(100)
+  highlight InstagramHighlight? @relation(fields: [highlightId], references: [id], onDelete: SetNull)
+
+  @@unique([id, shopDomain])
+  @@index([shopDomain])
+  @@index([accountId])
+  @@index([timestamp])
+}
+
+// Instagram highlights (collections of stories)
+model InstagramHighlight {
+  id String @id @db.VarChar(100)
+  shopDomain String @db.VarChar(100)
+  accountId String @db.VarChar(50)
+  title String @db.VarChar(100)
+  coverUrl String @db.LongText
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  account InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  stories InstagramStory[]
+
+  @@unique([id, shopDomain])
+  @@index([shopDomain])
+  @@index([accountId])
+}
+
 // Product tags on Instagram media
 model MediaProductTag {
   id String @id @default(cuid())
@@ -91,6 +136,25 @@ model MediaProductTag {
   media InstagramMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
   @@unique([mediaId, productId])
+  @@index([shopDomain])
+  @@index([productId])
+}
+
+// Product tags on Instagram stories
+model StoryProductTag {
+  id String @id @default(cuid())
+  storyId String @db.VarChar(100)
+  shopDomain String @db.VarChar(100)
+  productId String @db.VarChar(100)
+  productHandle String @db.VarChar(255)
+  x Float?
+  y Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  story InstagramStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, productId])
   @@index([shopDomain])
   @@index([productId])
 }

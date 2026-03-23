@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const authShop = await authenticate(request);
   
   if (!authShop) {
-    return new NextResponse('Unauthorized', { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -22,6 +22,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ media });
   } catch (error) {
     console.error('Error fetching media:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

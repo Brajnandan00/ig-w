@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Settings, Plus, Edit2, Trash2, Globe, Layout, Hash, FileText, Check, X, Play } from 'lucide-react';
+import Image from 'next/image';
 
 interface FeedWidget {
   id: string;
@@ -163,31 +164,37 @@ export default function WidgetManager({ shop, authenticatedFetch }: { shop: stri
           layout === 'grid' ? 'grid-cols-4' : 
           layout === 'carousel' ? 'grid-cols-6 overflow-hidden' : 
           layout === 'masonry' ? 'grid-cols-3' : 
-          layout === 'swipe' ? 'grid-cols-3' : 'grid-cols-4'
+          layout === 'swipe' ? 'grid-cols-3' : 
+          layout === 'stories' ? 'grid-cols-6 overflow-hidden' : 'grid-cols-4'
         }`}>
           {items.map((item, i) => (
             <div 
               key={i} 
-              className={`bg-zinc-200 rounded-md aspect-square relative overflow-hidden group ${
-                layout === 'masonry' && i % 3 === 1 ? 'aspect-[3/4]' : ''
+              className={`bg-zinc-200 relative overflow-hidden group ${
+                layout === 'stories' ? 'w-12 h-12 rounded-full border-2 border-indigo-500 p-0.5' : 
+                layout === 'masonry' && i % 3 === 1 ? 'aspect-[3/4] rounded-md' : 'aspect-square rounded-md'
               }`}
             >
-              {item && 'mediaUrl' in item ? (
-                <>
-                  <img 
-                    src={item.mediaType === 'VIDEO' ? (item.thumbnailUrl || item.mediaUrl) : item.mediaUrl} 
-                    className="w-full h-full object-cover"
-                    alt=""
-                  />
-                  {item.mediaType === 'VIDEO' && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Play size={12} fill="currentColor" className="text-white opacity-80" />
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/5 animate-pulse" />
-              )}
+              <div className={`w-full h-full overflow-hidden relative ${layout === 'stories' ? 'rounded-full' : 'rounded-md'}`}>
+                {item && 'mediaUrl' in item ? (
+                  <>
+                    <Image 
+                      src={item.mediaType === 'VIDEO' ? (item.thumbnailUrl || item.mediaUrl) : item.mediaUrl} 
+                      fill
+                      className="object-cover"
+                      alt=""
+                      referrerPolicy="no-referrer"
+                    />
+                    {item.mediaType === 'VIDEO' && layout !== 'stories' && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Play size={12} fill="currentColor" className="text-white opacity-80" />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/5 animate-pulse" />
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -428,6 +435,7 @@ export default function WidgetManager({ shop, authenticatedFetch }: { shop: stri
                         <option value="masonry">Masonry</option>
                         <option value="swipe">Swipe (Slider)</option>
                         <option value="collage">Collage</option>
+                        <option value="stories">Stories Bar</option>
                       </select>
                     </div>
                     <div>

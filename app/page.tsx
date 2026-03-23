@@ -17,7 +17,7 @@ export default function Dashboard() {
   const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     let token = '';
     try {
-      if ((window as any).shopify && (window as any).shopify.idToken) {
+      if (typeof window !== 'undefined' && (window as any).shopify && (window as any).shopify.idToken) {
         token = await (window as any).shopify.idToken();
       }
     } catch (e) {

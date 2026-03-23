@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Tag, ExternalLink, Image as ImageIcon, Video, Play } from 'lucide-react';
+import { Tag, ExternalLink, Image as ImageIcon, Video, Play, Layers, Clock, Eye, EyeOff } from 'lucide-react';
+import StoryGallery from './StoryGallery';
+import Image from 'next/image';
 
 interface MediaProductTag {
   id: string;
@@ -20,11 +22,23 @@ interface InstagramMedia {
   productTags: MediaProductTag[];
 }
 
+interface InstagramStory {
+  id: string;
+  mediaType: string;
+  mediaUrl: string;
+  thumbnailUrl: string | null;
+  timestamp: string;
+  productTags: MediaProductTag[];
+  highlightId?: string | null;
+}
+
 export default function InstagramGallery({ shop, authenticatedFetch }: { shop: string, authenticatedFetch: any }) {
+  const [activeTab, setActiveTab] = useState<'posts' | 'stories'>('posts');
   const [media, setMedia] = useState<InstagramMedia[]>([]);
+  const [stories, setStories] = useState<InstagramStory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPost, setSelectedPost] = useState<InstagramMedia | null>(null);
+  const [selectedPost, setSelectedPost] = useState<InstagramMedia | InstagramStory | null>(null);
 
   const fetchMedia = useCallback(async () => {
     try {
@@ -33,7 +47,6 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
       const data = await res.json();
       if (data.media) {
         setMedia(data.media);
-        return data.media;
       }
     } catch (err) {
       console.error('Failed to fetch media:', err);
@@ -41,21 +54,38 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
     } finally {
       setLoading(false);
     }
-    return null;
+  }, [shop, authenticatedFetch]);
+
+  const fetchStories = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await authenticatedFetch(`/api/instagram/stories?shop=${shop}`);
+      const data = await res.json();
+      if (data.stories) {
+        setStories([...data.stories, ...(data.highlights?.flatMap((h: any) => h.stories) || [])]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch stories:', err);
+    } finally {
+      setLoading(false);
+    }
   }, [shop, authenticatedFetch]);
 
   useEffect(() => {
-    fetchMedia();
-  }, [fetchMedia]);
+    if (activeTab === 'posts') {
+      fetchMedia();
+    } else {
+      fetchStories();
+    }
+  }, [activeTab, fetchMedia, fetchStories]);
 
-  const handleTagProduct = async (mediaId: string) => {
-    // In a real app, this would open Shopify's ResourcePicker
-    // For now, we'll simulate tagging a product
+  const handleTagProduct = async (mediaId: string, isStory: boolean = false) => {
     const productId = `gid://shopify/Product/${Math.floor(Math.random() * 10000000000)}`;
     const productHandle = `sample-product-${Math.floor(Math.random() * 1000)}`;
     
     try {
-      const res = await authenticatedFetch(`/api/instagram/media/tags?shop=${shop}`, {
+      const endpoint = isStory ? `/api/instagram/stories/tags?shop=${shop}` : `/api/instagram/media/tags?shop=${shop}`;
+      const res = await authenticatedFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,9 +98,15 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
       });
       
       if (res.ok) {
-        const updatedMedia = await fetchMedia(); // Refresh to show new tag
-        if (updatedMedia) {
-          const updatedPost = updatedMedia.find((m: InstagramMedia) => m.id === mediaId);
+        if (isStory) {
+          fetchStories();
+        } else {
+          fetchMedia();
+        }
+        // Update selected post to show new tag
+        if (selectedPost) {
+          const updatedList = isStory ? stories : media;
+          const updatedPost = updatedList.find((m: any) => m.id === mediaId);
           if (updatedPost) setSelectedPost(updatedPost);
         }
       }
@@ -80,16 +116,23 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
     }
   };
 
-  const handleRemoveTag = async (tagId: string, mediaId: string) => {
+  const handleRemoveTag = async (tagId: string, mediaId: string, isStory: boolean = false) => {
     try {
-      const res = await authenticatedFetch(`/api/instagram/media/tags?shop=${shop}&tagId=${tagId}`, {
+      const endpoint = isStory ? `/api/instagram/stories/tags?shop=${shop}&tagId=${tagId}` : `/api/instagram/media/tags?shop=${shop}&tagId=${tagId}`;
+      const res = await authenticatedFetch(endpoint, {
         method: 'DELETE'
       });
       
       if (res.ok) {
-        const updatedMedia = await fetchMedia(); // Refresh to remove tag
-        if (updatedMedia) {
-          const updatedPost = updatedMedia.find((m: InstagramMedia) => m.id === mediaId);
+        if (isStory) {
+          fetchStories();
+        } else {
+          fetchMedia();
+        }
+        // Update selected post
+        if (selectedPost) {
+          const updatedList = isStory ? stories : media;
+          const updatedPost = updatedList.find((m: any) => m.id === mediaId);
           if (updatedPost) setSelectedPost(updatedPost);
         }
       }
@@ -99,47 +142,63 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
     }
   };
 
-  if (loading) {
+  if (loading && media.length === 0 && stories.length === 0) {
     return <div className="p-8 text-center text-zinc-500">Loading your Instagram feed...</div>;
-  }
-
-  if (error) {
-    return <div className="p-8 text-center text-red-500">{error}</div>;
-  }
-
-  if (media.length === 0) {
-    return (
-      <div className="p-12 text-center border-2 border-dashed border-zinc-200 rounded-xl">
-        <ImageIcon className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-zinc-900 mb-2">No posts found</h3>
-        <p className="text-zinc-500">Sync your Instagram account to see your posts here.</p>
-      </div>
-    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Shoppable Feed</h3>
-        <span className="text-sm text-zinc-500">{media.length} posts synced</span>
+        <div className="flex gap-4">
+          <button 
+            onClick={() => setActiveTab('posts')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'posts' ? 'bg-indigo-600 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+          >
+            Posts
+          </button>
+          <button 
+            onClick={() => setActiveTab('stories')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'stories' ? 'bg-indigo-600 text-white' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'}`}
+          >
+            Stories & Highlights
+          </button>
+        </div>
+        <span className="text-sm text-zinc-500">
+          {activeTab === 'posts' ? `${media.length} posts` : `${stories.length} stories`} synced
+        </span>
       </div>
 
+      {activeTab === 'stories' && (
+        <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-200">
+          <h4 className="text-xs font-bold text-zinc-400 uppercase mb-4">Live Preview</h4>
+          <StoryGallery shop={shop} authenticatedFetch={authenticatedFetch} />
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {media.map((post) => (
+        {(activeTab === 'posts' ? media : stories).map((post) => (
           <div key={post.id} className="group relative aspect-square bg-zinc-100 rounded-xl overflow-hidden border border-zinc-200">
-            <img 
+            <Image 
               src={post.mediaType === 'VIDEO' ? (post.thumbnailUrl || post.mediaUrl) : post.mediaUrl} 
-              alt={post.caption || 'Instagram post'} 
-              className="w-full h-full object-cover"
+              alt={('caption' in post ? post.caption : 'Story') || 'Instagram post'} 
+              fill
+              className="object-cover"
               referrerPolicy="no-referrer"
             />
             
-            {/* Video Indicator */}
-            {post.mediaType === 'VIDEO' && (
-              <div className="absolute top-2 left-2 bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm z-10">
-                <Play size={14} fill="currentColor" />
-              </div>
-            )}
+            {/* Indicators */}
+            <div className="absolute top-2 left-2 flex gap-2 z-10">
+              {post.mediaType === 'VIDEO' && (
+                <div className="bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm">
+                  <Play size={14} fill="currentColor" />
+                </div>
+              )}
+              {'highlightId' in post && post.highlightId && (
+                <div className="bg-indigo-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">
+                  HIGHLIGHT
+                </div>
+              )}
+            </div>
 
             {/* Overlay */}
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 p-4 z-20">
@@ -155,15 +214,6 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
                 <Tag size={16} />
                 Manage Tags
               </button>
-              <a 
-                href={post.permalink} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="px-4 py-2 bg-white/20 text-white text-sm font-medium rounded-lg hover:bg-white/30 transition-colors w-full max-w-[160px] flex items-center justify-center gap-2"
-              >
-                <ExternalLink size={16} />
-                View on IG
-              </a>
             </div>
 
             {/* Tag Indicator */}
@@ -193,10 +243,11 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <img 
+                <Image 
                   src={selectedPost.mediaUrl} 
                   alt="Post preview" 
-                  className="w-full h-full object-contain"
+                  fill
+                  className="object-contain"
                   referrerPolicy="no-referrer"
                 />
               )}
@@ -205,7 +256,7 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
             {/* Sidebar */}
             <div className="w-1/2 flex flex-col h-full max-h-[90vh]">
               <div className="p-6 border-b border-zinc-200 flex items-center justify-between">
-                <h3 className="text-lg font-bold">Tag Products</h3>
+                <h3 className="text-lg font-bold">Tag Products ({activeTab === 'posts' ? 'Post' : 'Story'})</h3>
                 <button 
                   onClick={() => setSelectedPost(null)}
                   className="text-zinc-400 hover:text-zinc-600"
@@ -215,7 +266,9 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
               </div>
               
               <div className="p-6 flex-1 overflow-y-auto">
-                <p className="text-sm text-zinc-600 mb-6 line-clamp-3">{selectedPost.caption}</p>
+                {'caption' in selectedPost && selectedPost.caption && (
+                  <p className="text-sm text-zinc-600 mb-6 line-clamp-3">{selectedPost.caption}</p>
+                )}
                 
                 <div className="mb-6">
                   <h4 className="text-sm font-semibold text-zinc-900 mb-3 uppercase tracking-wider">Tagged Products</h4>
@@ -233,7 +286,7 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
                             </div>
                           </div>
                           <button 
-                            onClick={() => handleRemoveTag(tag.id, selectedPost.id)}
+                            onClick={() => handleRemoveTag(tag.id, selectedPost.id, activeTab === 'stories')}
                             className="text-red-500 hover:text-red-700 text-sm font-medium"
                           >
                             Remove
@@ -247,7 +300,7 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
                 </div>
 
                 <button 
-                  onClick={() => handleTagProduct(selectedPost.id)}
+                  onClick={() => handleTagProduct(selectedPost.id, activeTab === 'stories')}
                   className="w-full py-3 border-2 border-dashed border-indigo-200 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                 >
                   <Tag size={18} />

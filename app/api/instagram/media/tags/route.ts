@@ -6,14 +6,14 @@ export async function POST(request: NextRequest) {
   const authShop = await authenticate(request);
   
   if (!authShop) {
-    return new NextResponse('Unauthorized', { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const { mediaId, productId, productHandle, x, y } = await request.json();
 
     if (!mediaId || !productId || !productHandle) {
-      return new NextResponse('Missing required fields', { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     // Verify media belongs to shop
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!media) {
-      return new NextResponse('Media not found', { status: 404 });
+      return NextResponse.json({ error: 'Media not found' }, { status: 404 });
     }
 
     const tag = await prisma.mediaProductTag.create({
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ tag });
   } catch (error) {
     console.error('Error adding tag:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
@@ -47,7 +47,7 @@ export async function DELETE(request: NextRequest) {
   const authShop = await authenticate(request);
   
   if (!authShop) {
-    return new NextResponse('Unauthorized', { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
@@ -55,7 +55,7 @@ export async function DELETE(request: NextRequest) {
     const tagId = searchParams.get('tagId');
 
     if (!tagId) {
-      return new NextResponse('Missing tagId', { status: 400 });
+      return NextResponse.json({ error: 'Missing tagId' }, { status: 400 });
     }
 
     // Verify tag belongs to shop
@@ -64,7 +64,7 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (!tag || tag.shopDomain !== authShop) {
-      return new NextResponse('Tag not found', { status: 404 });
+      return NextResponse.json({ error: 'Tag not found' }, { status: 404 });
     }
 
     await prisma.mediaProductTag.delete({
@@ -74,6 +74,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting tag:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

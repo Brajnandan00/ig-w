@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   const authShop = await authenticate(request);
 
   if (!authShop) {
-    return new NextResponse('Unauthorized', { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const shop = authShop;
@@ -20,6 +20,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error disconnecting Instagram:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

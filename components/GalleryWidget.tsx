@@ -219,11 +219,13 @@ export default function GalleryWidget({ layout, tier, count, shop, isAdmin }: Ga
           </div>
         </div>
       ) : (
-        <img
+        <Image
           src={item.mediaUrl}
           alt={item.caption}
+          width={800}
+          height={1000}
           className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
-          loading="lazy"
+          referrerPolicy="no-referrer"
         />
       )}
       
@@ -348,10 +350,12 @@ export default function GalleryWidget({ layout, tier, count, shop, isAdmin }: Ga
                   className="max-w-full max-h-full object-contain"
                 />
               ) : (
-                <img 
+                <Image 
                   src={lightboxItem.mediaUrl} 
                   alt={lightboxItem.caption}
-                  className="max-w-full max-h-full object-contain"
+                  fill
+                  className="object-contain"
+                  referrerPolicy="no-referrer"
                 />
               )}
             </div>
