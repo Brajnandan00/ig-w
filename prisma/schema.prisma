@@ -136,3 +136,27 @@ model ThemeExtensionSettings {
 
   @@index([shopDomain])
 }
+
+// Customizable Feed Widgets for Personalization
+model FeedWidget {
+  id String @id @default(cuid())
+  shopDomain String @db.VarChar(100)
+  name String @db.VarChar(100) // e.g., "US Homepage Feed"
+  
+  // Targeting rules
+  targetCountries String? @db.VarChar(500) // Comma-separated country codes (e.g., "US,CA,GB"), null means all
+  targetPages String? @db.VarChar(500) // Comma-separated page types or paths (e.g., "index,product,/pages/about"), null means all
+  
+  // Content filtering
+  hashtagFilter String? @db.VarChar(255) // Only show posts with this hashtag
+  
+  // Display settings
+  displayLayout String @default("grid") @db.VarChar(50)
+  postsPerPage Int @default(12)
+  
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([shopDomain])
+}
