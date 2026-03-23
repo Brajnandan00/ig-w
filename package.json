@@ -8,7 +8,8 @@
     "start": "next start",
     "postinstall": "prisma generate",
     "lint": "eslint .",
-    "clean": "next clean"
+    "clean": "next clean",
+    "shopify": "shopify"
   },
   "dependencies": {
     "@google/genai": "^1.17.0",
@@ -30,6 +31,8 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@shopify/app": "^3.58.2",
+    "@shopify/cli": "^3.92.1",
     "@tailwindcss/postcss": "4.1.11",
     "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^20",
