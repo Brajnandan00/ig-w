@@ -71,6 +71,7 @@ model InstagramMedia {
   account InstagramAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
   hiddenPosts HiddenPost[]
   productTags MediaProductTag[]
+  categories Category[]
 
   @@unique([id, shopDomain])
   @@index([shopDomain])
@@ -223,5 +224,20 @@ model FeedWidget {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
+  @@index([shopDomain])
+}
+
+// Categories for organizing Instagram media
+model Category {
+  id String @id @default(cuid())
+  shopDomain String @db.VarChar(100)
+  name String @db.VarChar(100)
+  slug String @db.VarChar(100)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  media InstagramMedia[]
+
+  @@unique([shopDomain, slug])
   @@index([shopDomain])
 }
