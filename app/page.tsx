@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Aperture } from 'lucide-react';
 import InstagramGallery from '@/components/InstagramGallery';
+import WidgetManager from '@/components/WidgetManager';
+import SettingsManager from '@/components/SettingsManager';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -167,6 +169,17 @@ export default function Dashboard() {
     try {
       const res = await authenticatedFetch(`/api/billing/subscribe?shop=${shop}`);
       const data = await res.json();
+      
+      if (data.needsReauth && data.authUrl) {
+        // Redirect top window to re-authenticate
+        if (window.top) {
+          window.top.location.href = data.authUrl;
+        } else {
+          window.location.href = data.authUrl;
+        }
+        return;
+      }
+
       if (data.confirmationUrl) {
         // Redirect top window to confirmation URL
         if (window.top) {
@@ -175,7 +188,7 @@ export default function Dashboard() {
           window.location.href = data.confirmationUrl;
         }
       } else {
-        setError('Failed to get subscription URL. Please try again.');
+        setError(data.error || 'Failed to get subscription URL. Please try again.');
         setIsSubscribing(false);
       }
     } catch (err) {
@@ -247,27 +260,33 @@ export default function Dashboard() {
             <div className="p-6 border border-zinc-200 rounded-xl">
               <h3 className="text-lg font-semibold mb-4">Instagram Connection</h3>
               {igConnected ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="font-medium">@{igUsername}</div>
-                    <div className="text-xs text-zinc-500">Connected</div>
-                    {lastSyncedAt && <div className="text-xs text-zinc-400 ml-2">Last synced: {new Date(lastSyncedAt).toLocaleString()}</div>}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="font-medium">@{igUsername}</div>
+                      <div className="text-xs text-zinc-500">Connected</div>
+                      {lastSyncedAt && <div className="text-xs text-zinc-400 ml-2">Last synced: {new Date(lastSyncedAt).toLocaleString()}</div>}
+                    </div>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={handleSync} 
+                        disabled={isSyncing || isDisconnecting}
+                        className="px-3 py-1 bg-zinc-100 hover:bg-zinc-200 disabled:opacity-50 rounded-md text-sm transition-colors"
+                      >
+                        {isSyncing ? 'Syncing...' : 'Sync'}
+                      </button>
+                      <button 
+                        onClick={handleDisconnect} 
+                        disabled={isSyncing || isDisconnecting}
+                        className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 rounded-md text-sm transition-colors"
+                      >
+                        {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={handleSync} 
-                      disabled={isSyncing || isDisconnecting}
-                      className="px-3 py-1 bg-zinc-100 hover:bg-zinc-200 disabled:opacity-50 rounded-md text-sm transition-colors"
-                    >
-                      {isSyncing ? 'Syncing...' : 'Sync'}
-                    </button>
-                    <button 
-                      onClick={handleDisconnect} 
-                      disabled={isSyncing || isDisconnecting}
-                      className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 rounded-md text-sm transition-colors"
-                    >
-                      {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
-                    </button>
+                  
+                  <div className="pt-6 border-t border-zinc-200">
+                    <SettingsManager shop={shop} authenticatedFetch={authenticatedFetch} />
                   </div>
                 </div>
               ) : (
@@ -301,6 +320,13 @@ export default function Dashboard() {
             {igConnected && (
               <div className="p-6 border border-zinc-200 rounded-xl">
                 <InstagramGallery shop={shop} authenticatedFetch={authenticatedFetch} />
+              </div>
+            )}
+
+            {/* Feed Widgets */}
+            {igConnected && (
+              <div className="p-6 border border-zinc-200 rounded-xl">
+                <WidgetManager shop={shop} authenticatedFetch={authenticatedFetch} />
               </div>
             )}
           </div>

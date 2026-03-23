@@ -16,7 +16,13 @@ export async function GET(req: NextRequest) {
   try {
     const sessionData = await prisma.session.findFirst({ where: { shop } });
     if (!sessionData) {
-      return new NextResponse('Session not found', { status: 404 });
+      // If session is missing (e.g., due to previous DB schema limits), tell the frontend to re-authenticate
+      const authUrl = `${process.env.APP_URL?.replace(/\/$/, '')}/api/auth?shop=${shop}`;
+      return NextResponse.json({ 
+        error: 'Session not found', 
+        needsReauth: true,
+        authUrl 
+      }, { status: 200 }); // Return 200 so authenticatedFetch doesn't throw
     }
 
     const session = new Session({

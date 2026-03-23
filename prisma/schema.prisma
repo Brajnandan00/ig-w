@@ -9,7 +9,7 @@ datasource db {
 
 // Session storage for Shopify app authentication
 model Session {
-  id     String  @id @db.Char(32)
+  id     String  @id @db.VarChar(255)
   shop   String @db.VarChar(100)
   state  String @db.VarChar(100)
   isOnline Boolean @default(false)
