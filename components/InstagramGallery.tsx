@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Tag, ExternalLink, Image as ImageIcon, Video } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Tag, ExternalLink, Image as ImageIcon, Video, Play } from 'lucide-react';
 
 interface MediaProductTag {
   id: string;
@@ -14,6 +14,7 @@ interface InstagramMedia {
   caption: string | null;
   mediaType: string;
   mediaUrl: string;
+  thumbnailUrl: string | null;
   permalink: string;
   timestamp: string;
   productTags: MediaProductTag[];
@@ -25,7 +26,7 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<InstagramMedia | null>(null);
 
-  const fetchMedia = async () => {
+  const fetchMedia = useCallback(async () => {
     try {
       setLoading(true);
       const res = await authenticatedFetch(`/api/instagram/media?shop=${shop}`);
@@ -41,11 +42,11 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
       setLoading(false);
     }
     return null;
-  };
+  }, [shop, authenticatedFetch]);
 
   useEffect(() => {
     fetchMedia();
-  }, [shop]);
+  }, [fetchMedia]);
 
   const handleTagProduct = async (mediaId: string) => {
     // In a real app, this would open Shopify's ResourcePicker
@@ -126,21 +127,27 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {media.map((post) => (
           <div key={post.id} className="group relative aspect-square bg-zinc-100 rounded-xl overflow-hidden border border-zinc-200">
-            {post.mediaType === 'VIDEO' ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-                <Video className="w-8 h-8 text-white opacity-50" />
-              </div>
-            ) : (
-              <img 
-                src={post.mediaUrl} 
-                alt={post.caption || 'Instagram post'} 
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            )}
+            <img 
+              src={post.mediaType === 'VIDEO' ? (post.thumbnailUrl || post.mediaUrl) : post.mediaUrl} 
+              alt={post.caption || 'Instagram post'} 
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+            />
             
+            {/* Video Indicator */}
+            {post.mediaType === 'VIDEO' && (
+              <div className="absolute top-2 left-2 bg-black/50 text-white p-1.5 rounded-full backdrop-blur-sm z-10">
+                <Play size={14} fill="currentColor" />
+              </div>
+            )}
+
             {/* Overlay */}
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 p-4">
+            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-3 p-4 z-20">
+              {post.mediaType === 'VIDEO' && (
+                <div className="mb-2 p-3 bg-white/20 rounded-full backdrop-blur-md">
+                  <Play size={24} fill="currentColor" className="text-white" />
+                </div>
+              )}
               <button 
                 onClick={() => setSelectedPost(post)}
                 className="px-4 py-2 bg-white text-black text-sm font-medium rounded-lg hover:bg-zinc-100 transition-colors w-full max-w-[160px] flex items-center justify-center gap-2"
@@ -174,13 +181,17 @@ export default function InstagramGallery({ shop, authenticatedFetch }: { shop: s
       {selectedPost && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex overflow-hidden">
-            {/* Image Side */}
+            {/* Image/Video Side */}
             <div className="w-1/2 bg-zinc-100 relative flex items-center justify-center">
               {selectedPost.mediaType === 'VIDEO' ? (
-                <div className="flex flex-col items-center text-zinc-500">
-                  <Video className="w-12 h-12 mb-2" />
-                  <span>Video Preview</span>
-                </div>
+                <video 
+                  src={selectedPost.mediaUrl} 
+                  controls 
+                  autoPlay 
+                  loop 
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
               ) : (
                 <img 
                   src={selectedPost.mediaUrl} 

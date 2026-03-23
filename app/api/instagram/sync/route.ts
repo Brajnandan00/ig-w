@@ -51,9 +51,6 @@ export async function POST(request: NextRequest) {
       const likes = 0;
       const comments = 0;
 
-      // For videos, use thumbnail_url if available, otherwise media_url
-      const finalMediaUrl = post.media_type === 'VIDEO' ? (post.thumbnail_url || post.media_url) : post.media_url;
-
       await prisma.instagramMedia.upsert({
         where: {
           id_shopDomain: {
@@ -64,7 +61,8 @@ export async function POST(request: NextRequest) {
         update: {
           caption: post.caption || '',
           mediaType: post.media_type,
-          mediaUrl: finalMediaUrl,
+          mediaUrl: post.media_url,
+          thumbnailUrl: post.thumbnail_url || null,
           permalink: post.permalink,
           timestamp: new Date(post.timestamp),
           syncedAt: new Date(),
@@ -75,7 +73,8 @@ export async function POST(request: NextRequest) {
           accountId: account.id,
           caption: post.caption || '',
           mediaType: post.media_type,
-          mediaUrl: finalMediaUrl,
+          mediaUrl: post.media_url,
+          thumbnailUrl: post.thumbnail_url || null,
           permalink: post.permalink,
           timestamp: new Date(post.timestamp),
           engagementCount: likes,

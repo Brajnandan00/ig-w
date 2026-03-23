@@ -48,11 +48,15 @@ export async function GET(request: Request) {
     const heights = [800, 1000, 600, 1200, 900];
     const height = heights[index % heights.length];
     
+    const mediaUrl = mediaType === 'VIDEO' ? 'https://www.w3schools.com/html/mov_bbb.mp4' : `https://picsum.photos/seed/insta${index + 1}/800/${height}`;
+    const thumbnailUrl = mediaType === 'VIDEO' ? `https://picsum.photos/seed/thumb${index + 1}/800/${height}` : undefined;
+    
     return {
       id: `post-${index + 1}`,
       caption: `Amazing moment captured! ✨ #photography #lifestyle #post${index + 1}`,
       mediaType,
-      mediaUrl: mediaType === 'VIDEO' ? 'https://www.w3schools.com/html/mov_bbb.mp4' : `https://picsum.photos/seed/insta${index + 1}/800/${height}`,
+      mediaUrl,
+      thumbnailUrl,
       blurHash: "L1R]^~NGofS}01RjZ{oK", // Placeholder blurhash
       timestamp: Date.now() - (index * 86400000), // 1 day apart
       likes: Math.floor(Math.random() * 1000) + 50,

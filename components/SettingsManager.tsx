@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, Save } from 'lucide-react';
 
 export default function SettingsManager({ shop, authenticatedFetch }: { shop: string, authenticatedFetch: any }) {
@@ -9,7 +9,7 @@ export default function SettingsManager({ shop, authenticatedFetch }: { shop: st
   
   const [autoRefreshInterval, setAutoRefreshInterval] = useState(3600); // Default 1 hour
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setLoading(true);
       const res = await authenticatedFetch(`/api/settings?shop=${shop}`);
@@ -23,11 +23,11 @@ export default function SettingsManager({ shop, authenticatedFetch }: { shop: st
     } finally {
       setLoading(false);
     }
-  };
+  }, [shop, authenticatedFetch]);
 
   useEffect(() => {
     fetchSettings();
-  }, [shop]);
+  }, [fetchSettings]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

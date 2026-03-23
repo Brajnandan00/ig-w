@@ -56,6 +56,7 @@ model InstagramMedia {
   caption String? @db.LongText
   mediaType String @db.VarChar(20) // IMAGE, VIDEO, CAROUSEL
   mediaUrl String @db.LongText
+  thumbnailUrl String? @db.LongText
   permalink String @db.VarChar(500)
   timestamp DateTime
   engagementCount Int @default(0)

@@ -24,6 +24,7 @@ interface MediaItem {
   caption: string;
   mediaType: 'IMAGE' | 'VIDEO' | 'CAROUSEL';
   mediaUrl: string;
+  thumbnailUrl?: string;
   blurHash: string;
   timestamp: number;
   likes: number;
@@ -121,14 +122,22 @@ export default function GalleryWidget({ layout, tier, count, shop, isAdmin }: Ga
       onClick={() => setLightboxItem(item)}
     >
       {item.mediaType === 'VIDEO' ? (
-        <video
-          src={item.mediaUrl}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
-        />
+        <div className="relative w-full h-full">
+          <video
+            src={item.mediaUrl}
+            poster={item.thumbnailUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
+          />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="bg-black/30 backdrop-blur-sm p-3 rounded-full text-white opacity-80 group-hover:opacity-100 transition-opacity">
+              <Play size={24} fill="currentColor" />
+            </div>
+          </div>
+        </div>
       ) : (
         <Image
           src={item.mediaUrl}
@@ -193,14 +202,22 @@ export default function GalleryWidget({ layout, tier, count, shop, isAdmin }: Ga
     >
       {/* For masonry, we use a trick to maintain natural aspect ratio or just let Image fill a relative container with padding-bottom */}
       {item.mediaType === 'VIDEO' ? (
-        <video
-          src={item.mediaUrl}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
-        />
+        <div className="relative w-full h-auto">
+          <video
+            src={item.mediaUrl}
+            poster={item.thumbnailUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="bg-black/30 backdrop-blur-sm p-3 rounded-full text-white opacity-80 group-hover:opacity-100 transition-opacity">
+              <Play size={24} fill="currentColor" />
+            </div>
+          </div>
+        </div>
       ) : (
         <img
           src={item.mediaUrl}

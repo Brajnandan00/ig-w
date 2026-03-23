@@ -223,7 +223,7 @@ export default function Dashboard() {
         <div className="bg-white p-8 rounded-2xl shadow-sm border border-zinc-200 text-center max-w-md">
           <Aperture className="w-12 h-12 text-indigo-600 mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">App Must Be Embedded</h2>
-          <p className="text-zinc-600 mb-4">This app is designed to run inside the Shopify Admin. Please open it from your Shopify store's Apps section.</p>
+          <p className="text-zinc-600 mb-4">This app is designed to run inside the Shopify Admin. Please open it from your Shopify store&apos;s Apps section.</p>
           <p className="text-sm text-zinc-500">If you are testing locally, ensure you have installed the app on a development store and are opening it through the Shopify Partner Dashboard.</p>
         </div>
       </div>
