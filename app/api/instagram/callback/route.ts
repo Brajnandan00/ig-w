@@ -56,7 +56,7 @@ export async function GET(request: Request) {
     const userId = tokenData.user_id;
 
     // 2. Exchange short-lived token for long-lived token
-    const longLivedUrl = `https://graph.instagram.com/v25.0/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLivedToken}`;
+    const longLivedUrl = `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLivedToken}`;
     const longLivedRes = await fetch(longLivedUrl);
     const longLivedData = await longLivedRes.json();
 
@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
     // 3. Get user profile
-    const profileUrl = `https://graph.instagram.com/v25.0/me?fields=id,username,account_type,media_count&access_token=${longLivedToken}`;
+    const profileUrl = `https://graph.instagram.com/v25.0/me?fields=user_id,username&access_token=${longLivedToken}`;
     const profileRes = await fetch(profileUrl);
     const profileData = await profileRes.json();
 
@@ -79,8 +79,10 @@ export async function GET(request: Request) {
       return new NextResponse(`Instagram Error: ${profileData.error.message}`, { status: 400 });
     }
 
-    const username = profileData.username;
-    const igUserId = profileData.id;
+    // The new API returns data in a data array
+    const userData = profileData.data && profileData.data.length > 0 ? profileData.data[0] : profileData;
+    const username = userData.username;
+    const igUserId = userData.user_id || userData.id;
 
     // 4. Save to database
     await prisma.instagramAccount.upsert({

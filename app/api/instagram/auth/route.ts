@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   // Pass the shop domain in the state parameter to retrieve it in the callback
   const state = encodeURIComponent(JSON.stringify({ shop }));
 
-  const authUrl = `https://api.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user_profile,user_media&response_type=code&state=${state}`;
+  const authUrl = `https://www.instagram.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=instagram_business_basic,instagram_manage_comments,instagram_business_manage_messages&response_type=code&state=${state}`;
 
   return NextResponse.json({ authUrl });
 }
