@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Settings, Aperture } from 'lucide-react';
+import InstagramGallery from '@/components/InstagramGallery';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
@@ -295,6 +296,13 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+
+            {/* Shoppable Gallery */}
+            {igConnected && (
+              <div className="p-6 border border-zinc-200 rounded-xl">
+                <InstagramGallery shop={shop} authenticatedFetch={authenticatedFetch} />
+              </div>
+            )}
           </div>
         </div>
       </main>
