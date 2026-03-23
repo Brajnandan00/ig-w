@@ -4,6 +4,7 @@ client_id = "c5304259c5d088653784aded2522bc8b"
 name = "Instagram Feed App"
 handle = "instagram-feed-app" # Verify this in your Shopify Partner Dashboard
 application_url = "https://ig-w-production.up.railway.app"
+embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
@@ -16,3 +17,6 @@ scopes = "read_products,write_products"
 redirect_urls = [
   "https://ig-w-production.up.railway.app/api/auth/callback"
 ]
+
+[webhooks]
+api_version = "2024-01"
