@@ -25,6 +25,7 @@ jobs:
         run: npm install
 
       - name: Deploy Extension
-        run: npm run shopify app deploy -- --force
+        # Using npx directly and adding --non-interactive flag
+        run: npx shopify app deploy --force --non-interactive
         env:
           SHOPIFY_CLI_TOKEN: ${{ secrets.SHOPIFY_CLI_TOKEN }}
