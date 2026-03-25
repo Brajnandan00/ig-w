@@ -7,24 +7,24 @@ export async function GET(request: Request) {
   const count = parseInt(searchParams.get('count') || '12', 10);
   const shop = searchParams.get('shop');
 
-  if (shop) {
-    const account = await prisma.instagramAccount.findFirst({
-      where: { shopDomain: shop }
-    });
-
-    if (account) {
-      const dbMedia = await prisma.instagramMedia.findMany({
-        where: { shopDomain: shop },
-        orderBy: { timestamp: 'desc' },
-        take: count,
-      });
-
-      const hiddenPosts = await prisma.hiddenPost.findMany({
+  try {
+    if (shop) {
+      const account = await prisma.instagramAccount.findFirst({
         where: { shopDomain: shop }
       });
-      const hiddenIds = new Set(hiddenPosts.map(hp => hp.mediaId));
 
-      if (dbMedia.length >= 0) {
+      if (account) {
+        const dbMedia = await prisma.instagramMedia.findMany({
+          where: { shopDomain: shop },
+          orderBy: { timestamp: 'desc' },
+          take: count,
+        });
+
+        const hiddenPosts = await prisma.hiddenPost.findMany({
+          where: { shopDomain: shop }
+        });
+        const hiddenIds = new Set(hiddenPosts.map(hp => hp.mediaId));
+
         return NextResponse.json({
           media: dbMedia.map(m => ({
             ...m,
@@ -36,6 +36,9 @@ export async function GET(request: Request) {
         });
       }
     }
+  } catch (error) {
+    console.error('Error fetching media from DB:', error);
+    // Fall through to mock data on error
   }
 
   // Generate mock data based on the requested count

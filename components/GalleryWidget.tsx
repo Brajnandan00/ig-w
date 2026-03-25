@@ -48,16 +48,33 @@ export default function GalleryWidget({ layout, tier, count, shop, isAdmin }: Ga
 
   useEffect(() => {
     const fetchMedia = async () => {
+      console.log('GalleryWidget: Fetching media for shop:', shop);
       setLoading(true);
+      
+      // Create an AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
       try {
         const url = shop 
-          ? `/api/media/feed?tier=${tier}&count=${count}&shop=${shop}`
+          ? `/api/media/feed?tier=${tier}&count=${count}&shop=${encodeURIComponent(shop)}`
           : `/api/media/feed?tier=${tier}&count=${count}`;
-        const res = await fetch(url);
+        
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        
         const data = await res.json();
-        setMedia(data.media);
-      } catch (error) {
-        console.error('Failed to fetch media:', error);
+        console.log('GalleryWidget: Received data:', data);
+        setMedia(Array.isArray(data.media) ? data.media : []);
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.error('GalleryWidget: Fetch timed out');
+        } else {
+          console.error('GalleryWidget: Failed to fetch media:', error);
+        }
+        setMedia([]);
       } finally {
         setLoading(false);
       }

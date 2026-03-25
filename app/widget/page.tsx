@@ -12,12 +12,15 @@ function WidgetContent() {
   const tier = (searchParams.get('tier') as 'free' | 'premium') || 'premium';
   
   const [height, setHeight] = useState(0);
+  const heightRef = React.useRef(0);
 
   useEffect(() => {
     // Send height to parent for iframe resizing
     const updateHeight = () => {
       const newHeight = document.body.scrollHeight;
-      if (newHeight !== height) {
+      // Only update if height changed by more than 5px to avoid loops
+      if (Math.abs(newHeight - heightRef.current) > 5) {
+        heightRef.current = newHeight;
         setHeight(newHeight);
         window.parent.postMessage({ type: 'resize', height: newHeight }, '*');
       }
@@ -26,8 +29,11 @@ function WidgetContent() {
     const observer = new ResizeObserver(updateHeight);
     observer.observe(document.body);
     
+    // Initial update
+    updateHeight();
+    
     return () => observer.disconnect();
-  }, [height]);
+  }, []); // Remove height dependency to avoid loop
 
   if (!shop) {
     return (
