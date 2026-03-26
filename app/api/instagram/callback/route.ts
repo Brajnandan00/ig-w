@@ -62,7 +62,7 @@ export async function GET(request: Request) {
 
     if (longLivedData.error) {
       console.error('Instagram Long Lived Token Error:', longLivedData);
-      return new NextResponse(`Instagram Error: ${longLivedData.error.message}`, { status: 400 });
+      return new NextResponse(`Instagram Error:2. Exchange short-lived token for long-lived token: ${longLivedData.error.message}`, { status: 400 });
     }
 
     const longLivedToken = longLivedData.access_token;
