@@ -283,6 +283,10 @@ export default function WidgetManager({ shop, authenticatedFetch }: { shop: stri
                   )}
                 </div>
               </div>
+
+              <div className="w-48 shrink-0 ml-4">
+                <GridPreview layout={widget.displayLayout} count={widget.postsPerPage} />
+              </div>
               
               <div className="flex items-center gap-2 ml-4">
                 <button 
