@@ -60,9 +60,8 @@ export async function GET(request: Request) {
       grant_type: 'ig_exchange_token',
       client_secret: clientSecret,
       access_token: shortLivedToken,
-      client_id: clientId,
     });
-    const longLivedUrl = `https://graph.instagram.com/access_token?${params.toString()}`;
+    const longLivedUrl = `https://graph.facebook.com/v25.0/oauth/access_token?${params.toString()}`;
     const longLivedRes = await fetch(longLivedUrl);
     const longLivedData = await longLivedRes.json();
 

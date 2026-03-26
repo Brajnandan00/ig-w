@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
       returnUrl: returnUrl,
     });
 
+    console.log('Billing confirmation URL:', confirmationUrl);
     return NextResponse.json({ confirmationUrl });
   } catch (error) {
     console.error('Billing request error:', error);
