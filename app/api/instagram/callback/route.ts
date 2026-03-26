@@ -57,7 +57,7 @@ export async function GET(request: Request) {
 
     // 2. Exchange short-lived token for long-lived token
     const longLivedUrl = `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${clientSecret}&access_token=${shortLivedToken}`;
-    const longLivedRes = await fetch(longLivedUrl);
+    const longLivedRes = await fetch(longLivedUrl, { method: 'POST' });
     const longLivedData = await longLivedRes.json();
 
     if (longLivedData.error) {
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
 
     if (profileData.error) {
       console.error('Instagram Profile Error:', profileData);
-      return new NextResponse(`Instagram Error: ${profileData.error.message}`, { status: 400 });
+      return new NextResponse(`Instagram Error:Error for profile: ${profileData.error.message}`, { status: 400 });
     }
 
     // The new API returns data in a data array
